@@ -5,7 +5,7 @@ module lab5_master #(
     input wire clk_i,
     input wire rst_i,
 
-    // TODO: æ·»åŠ éœ€è¦çš„æ§åˆ¶ä¿¡å·ï¼Œä¾‹å¦‚æŒ‰é”®å¼€å…³ï¼Ÿ
+    // TODO: Ìí¼ÓĞèÒªµÄ¿ØÖÆĞÅºÅ£¬ÀıÈç°´¼ü¿ª¹Ø£¿
 
     // wishbone master
     output reg wb_cyc_o,
@@ -18,6 +18,6 @@ module lab5_master #(
     output reg wb_we_o
 );
 
-  // TODO: å®ç°å®éªŒ 5 çš„å†…å­˜+ä¸²å£ Master
+  // TODO: ÊµÏÖÊµÑé 5 µÄÄÚ´æ+´®¿Ú Master
 
 endmodule
