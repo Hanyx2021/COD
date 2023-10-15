@@ -3,18 +3,18 @@ module lab2_tb;
 
   wire clk_50M, clk_11M0592;
 
-  reg push_btn;   // BTN5 按钮开关，带消抖电路，按下时为 1
-  reg reset_btn;  // BTN6 复位按钮，带消抖电路，按下时为 1
+  reg push_btn;   // BTN5 ��ť���أ���������·������ʱΪ 1
+  reg reset_btn;  // BTN6 ��λ��ť����������·������ʱΪ 1
 
-  reg [3:0] touch_btn; // BTN1~BTN4，按钮开关，按下时为 1
-  reg [31:0] dip_sw;   // 32 位拨码开关，拨到“ON”时为 1
+  reg [3:0] touch_btn; // BTN1~BTN4����ť���أ�����ʱΪ 1
+  reg [31:0] dip_sw;   // 32 λ���뿪�أ�������ON��ʱΪ 1
 
-  wire [15:0] leds;  // 16 位 LED，输出时 1 点亮
-  wire [7:0] dpy0;   // 数码管低位信号，包括小数点，输出 1 点亮
-  wire [7:0] dpy1;   // 数码管高位信号，包括小数点，输出 1 点亮
+  wire [15:0] leds;  // 16 λ LED�����ʱ 1 ����
+  wire [7:0] dpy0;   // ����ܵ�λ�źţ�����С���㣬��� 1 ����
+  wire [7:0] dpy1;   // ����ܸ�λ�źţ�����С���㣬��� 1 ����
 
   initial begin
-    // 在这里可以自定义测试输入序列，例如：
+    // ����������Զ�������������У����磺
     dip_sw = 32'h0;
     touch_btn = 0;
     reset_btn = 0;
@@ -26,16 +26,16 @@ module lab2_tb;
     reset_btn = 0;
     
     for (integer i = 0; i < 20; i = i + 1) begin
-      #100;  // 等待 100ns
-      push_btn = 1;  // 按下 push_btn 按钮
-      #100;  // 等待 100ns
-      push_btn = 0;  // 松开 push_btn 按钮
+      #100;  // �ȴ� 100ns
+      push_btn = 1;  // ���� push_btn ��ť
+      #100;  // �ȴ� 100ns
+      push_btn = 0;  // �ɿ� push_btn ��ť
     end
 
     #10000 $finish;
   end
 
-  // 待测试用户设计
+  // �������û����
   lab2_top dut (
       .clk_50M(clk_50M),
       .clk_11M0592(clk_11M0592),
@@ -76,7 +76,7 @@ module lab2_tb;
       .flash_we_n()
   );
 
-  // 时钟源
+  // ʱ��Դ
   clock osc (
       .clk_11M0592(clk_11M0592),
       .clk_50M    (clk_50M)

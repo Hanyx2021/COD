@@ -106,8 +106,65 @@ module lab3_top (
   /* =========== Demo code end =========== */
 
   // TODO: 内部信号声明
-
+    logic trigger;
+    logic [3:0]op;
+    logic [15:0]rs1;
+    logic [15:0]rs2;
+    logic [15:0]rd;
+    logic [4:0]waddr;
+    logic [15:0]wdata;
+    logic [4:0]raddr_a;
+    logic [15:0]rdata_a;
+    logic [4:0]raddr_b;
+    logic [15:0]rdata_b;
+    logic we;
+    
+    
   // TODO: 实验模块例化
-
+      register u_reg(
+      .clk(clk_10M),
+      .reset(reset_of_clk10M),
+      .trigger(trigger),
+      .waddr(waddr),
+      .wdata(wdata),
+      .raddr_a(raddr_a),
+      .rdata_a(rdata_a),
+      .raddr_b(raddr_b),
+      .rdata_b(rdata_b),
+      .we(we)
+    );
+    
+       ALU u_alu(
+        .op(op),
+        .rs1(rs1),
+        .rs2(rs2),
+        .rd(rd)
+       );
+  
+      controller u_controll (
+        .clk(clk_10M),
+        .reset(reset_of_clk10M),
+        .step(trigger),
+        .dip_sw(dip_sw),
+        .leds(leds),
+        .rf_waddr(waddr),
+        .rf_wdata(wdata),
+        .rf_raddr_a(raddr_a),
+        .rf_rdata_a(rdata_a),
+        .rf_raddr_b(raddr_b),
+        .rf_rdata_b(rdata_b),
+        .rf_we(we),
+        .alu_op(op),
+        .alu_a(rs1),
+        .alu_b(rs2),
+        .alu_y(rd)
+       );
+   
+       trigger u_trigger (
+       .clk (clk_10M),
+       .push (push_btn),
+       .trigger(trigger),
+       .reset(reset_of_clk10M)
+  );
 
 endmodule
