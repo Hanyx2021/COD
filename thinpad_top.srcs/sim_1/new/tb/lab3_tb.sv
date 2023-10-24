@@ -53,9 +53,9 @@ module lab3_tb;
     reset_btn = 1;
     #100;
     reset_btn = 0;
-    #1000;  // 等待复位结束
+    #2000;  // 等待复位结束
 
-    // 样例：使用 POKE 指令为寄存器赋随机初值
+    // （1）用 POKE 指令为所有的非零寄存器赋随机初值
     for (int i = 1; i < 32; i = i + 1) begin
       #100;
       rd = i;   // only lower 5 bits
@@ -68,27 +68,92 @@ module lab3_tb;
       #1000;
     end
     #1000;
-    dip_sw = `inst_peek(3, 4'd1001);
+    // (2)用PEEK指令读取2号寄存器和3号寄存器内容显示在LED上
+    dip_sw = `inst_peek(2, 4'd1001);
      push_btn = 1;
            #100;
       push_btn = 0;
       # 1000;
-          dip_sw = `inst_peek(6, 4'd1001);
+          dip_sw = `inst_peek(3, 4'd1001);
      push_btn = 1;
            #100;
       push_btn = 0;
       # 1000;
-     // 使用PEEK指令
+    // 下面的运算均为 r4 <= calc(r2,r3)
+    // ADD
     rs1 = 2;
     rs2 = 3;
     rd = 4;
+    opcode = ADD;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // SUB
+    opcode = SUB;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // AND
+    opcode = AND;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // OR
+    opcode = OR;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // XOR
+    opcode = XOR;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // NOT
+    opcode = NOT;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // SLL
+    opcode = SLL;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // SRL
+    opcode = SRL;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // SRA
+    opcode = SRA;
+    dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
+    push_btn = 1;
+    #100;
+    push_btn = 0;
+    # 1000;
+        // ROL
     opcode = ROL;
     dip_sw = `inst_rtype(rd,rs1,rs2,opcode);
     push_btn = 1;
     #100;
     push_btn = 0;
-    
-    #1000 $finish;
+    # 1000;
+     $finish;
   end
 
   // 待测试用户设计
