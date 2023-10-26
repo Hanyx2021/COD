@@ -113,6 +113,7 @@ always_ff @(posedge clk_i)begin
   else begin
     case(state)
       STATE_IDLE:begin
+        if(wb_stb_i && wb_cyc_i)begin
           sram_ce_n = 1'b0;
           sram_addr <= (wb_adr_i >> 2);
           sram_be_n <= ~wb_sel_i;
@@ -128,6 +129,7 @@ always_ff @(posedge clk_i)begin
             sram_data_t_reg <= 1'b1;
           end
       end
+    end
       STATE_READ:begin
       end
       STATE_READ_2:begin
@@ -145,9 +147,9 @@ always_ff @(posedge clk_i)begin
       STATE_WRITE_3:begin
         wb_ack_o <= 1'b1;
         sram_ce_n <= 1'b1;
+        sram_data_t_reg <= 1'b1;
       end
       STATE_DONE:begin
-        sram_data_t_reg <= 1'b1;
         wb_ack_o <= 1'b0;
       end
     endcase
