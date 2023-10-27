@@ -134,7 +134,7 @@ module lab5_top (
       .rst_i(sys_rst),
 
       // TODO: 添加需要的控制信号，例如按键开关？
-
+      .sram_addr(dip_sw),
       // wishbone master
       .wb_cyc_o(wbm_cyc_o),
       .wb_stb_o(wbm_stb_o),
