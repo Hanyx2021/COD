@@ -185,7 +185,7 @@ always_ff @(posedge clk_i)begin
         wb_cyc_o <= 1'b1;
         wb_stb_o <= 1'b1;
         wb_sel_o <= 4'b0001;
-        wb_adr_o <= ((addr_reg >> 2) << 2) + 4 * i;
+        wb_adr_o <= addr_reg + 4 * i;
         wb_dat_o <= data_reg;
         wb_we_o <= 1'b1;
       end

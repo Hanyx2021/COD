@@ -82,8 +82,9 @@ module lab5_tb;
     uart.pc_send_byte(8'h38); // ASCII '8'
     #10000;
     uart.pc_send_byte(8'h39); // ASCII '9'
-    
-    
+    #10000;
+    uart.pc_send_byte(8'h39); // ASCII '9'
+    #10000;
     
 
     // PC 接收到数据后，会在仿真窗口中打印出数据
