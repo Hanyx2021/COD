@@ -23,17 +23,16 @@
 module register(
     input wire clk,
     input wire reset,
-    input wire trigger,
     input wire[4:0] waddr,
-    input wire[15:0] wdata,
+    input wire[31:0] wdata,
     input wire we,
     input wire[4:0] raddr_a,
-    output reg[15:0] rdata_a,
+    output reg[31:0] rdata_a,
     input wire[4:0] raddr_b,
-    output reg[15:0] rdata_b
+    output reg[31:0] rdata_b
     );
     
-    reg [15:0] data_reg [0:31];
+    reg [31:0] data_reg [0:31];
     reg a_reg;
     reg b_reg;
     integer i;
@@ -54,6 +53,6 @@ module register(
             end
         end
     end
-        assign    rdata_a = data_reg[raddr_a];
-        assign    rdata_b = data_reg[raddr_b];
+    assign    rdata_a = data_reg[raddr_a];
+    assign    rdata_b = data_reg[raddr_b];
 endmodule
