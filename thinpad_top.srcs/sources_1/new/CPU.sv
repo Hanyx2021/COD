@@ -322,6 +322,7 @@ module SEG_MEM(                    // 待填�??????
     input wire [31:0] raddr_in,
     output reg [31:0] data_out,
     output reg [31:0] inst_out,
+    output reg [4:0] load_rd,
     output reg data_ack_o,
 
     output reg [31:0] wbm1_adr_o,      // 读写地址
@@ -357,6 +358,22 @@ always_comb begin
     end
     else begin
       wbm1_sel_o = 4'b0001;
+    end
+    if(state == STATE_IDLE) begin
+      if(instr_type == 7'b0000011) begin
+        load_rd = inst_in[11:7];
+      end
+      else begin
+        load_rd = 5'b00000;
+      end
+    end
+    else begin
+      if(instr[6:0] == 7'b0000011) begin
+        load_rd = instr[11:7];
+      end
+      else begin
+        load_rd = 5'b00000;
+      end
     end
 end
 
@@ -417,10 +434,10 @@ always_comb begin
       data_ack_o <= 1'b0;
     end
     else begin
-        pc <= pc_in;
-        instr <= inst_in;
       case(state)
         STATE_IDLE:begin
+          pc <= pc_in;
+          instr <= inst_in;
           if(instr_type == 7'b0100011) begin             // SB,SW
             wbm1_cyc_o <= 1'b1;
             wbm1_stb_o <= 1'b1;
@@ -557,8 +574,10 @@ module REG_IDEXE(
     output reg [31:0] a_out,
     input wire [31:0] b_in,
     output reg [31:0] b_out,
+    input wire [4:0] load_rd2,
     output reg [4:0] idexe_rs1,
     output reg [4:0] idexe_rs2,
+    output reg if_stall_o,
     input wire stall_i,
     input wire bubble_i,
     input wire pc_finish
@@ -598,6 +617,12 @@ always_comb begin
   else begin
     load_rd = 5'b00000;
   end
+  if ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)) || (load_rd2 != '0 && (load_rd2 == rs1 || load_rd2 == rs2))) begin
+    if_stall_o = 'b1;
+  end
+  else begin
+    if_stall_o = 'b0;
+  end
 end
 
 always_ff @(posedge clk_i) begin
@@ -609,7 +634,7 @@ always_ff @(posedge clk_i) begin
   end
   else if(stall_i || pc_finish) begin
   end
-  else if(bubble_i || (load_rd != '0 && (load_rd == rs1 || load_rd == rs2))) begin
+  else if(bubble_i || ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)) || (load_rd2 != '0 && (load_rd2 == rs1 || load_rd2 == rs2)))) begin
     pc <= '0;
     instr <= '0;
     a <= '0;
@@ -798,7 +823,8 @@ endmodule
 module conflict_controller(
   input wire branch_conflict_i,
   input wire data_ack_i,
-  output reg cp_ack_o,
+  input wire pc_stall_i,
+  output reg pc_ack_o,
   output reg ifid_stall_o,
   output reg ifid_bubble_o,
   output reg idexe_stall_o,
@@ -817,7 +843,7 @@ always_comb begin
     ifid_bubble_o = '1;
     ifid_stall_o = '0;
   end
-  else if(data_ack_i) begin
+  else if(data_ack_i || pc_stall_i) begin
     ifid_bubble_o = '0;
     ifid_stall_o = '1;
   end
@@ -840,11 +866,11 @@ always_comb begin
     idexe_stall_o = '0;
     exemem_stall_o = '0;
   end
-  if(data_ack_i) begin
-    cp_ack_o = '1;
+  if(data_ack_i || pc_stall_i) begin
+    pc_ack_o = '1;
   end
   else begin
-    cp_ack_o = '0;
+    pc_ack_o = '0;
   end
 end
 endmodule
