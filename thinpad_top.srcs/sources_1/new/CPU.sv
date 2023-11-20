@@ -150,12 +150,22 @@ always_comb begin
         7'b0110111:                     // LUI
             begin
             end
-        7'b1100011:                     // BEQ
+        7'b0010111:                     // AUIPC
+            begin
+            end
+        7'b1101111:                     // JAL
+            begin
+            end
+        7'b1100111:                     // JALR
+            begin
+                rs1 = instr[19:15];
+            end
+        7'b1100011:                     // BEQ,BNE
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
             end
-        7'b0000011:                     // LB
+        7'b0000011:                     // LB,LW
             begin
                 rs1 = instr[19:15];
             end
@@ -164,11 +174,11 @@ always_comb begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
             end
-        7'b0010011:                     // ADDI,ANDI
+        7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI
             begin
                 rs1 = instr[19:15];
             end
-        7'b0110011:                    // ADD
+        7'b0110011:                    // ADD,AND,OR,XOR
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
@@ -236,66 +246,131 @@ always_comb begin
     case(instr_type)
         7'b0110111:                     // LUI
             begin
-                alu_reg = instr[31:12] << 12;
+              alu_reg = instr[31:12] << 12;
             end
-        7'b1100011:                     // BEQ
+        7'b0010111:                     // AUIPC
             begin
-                if(a_data_reg == b_data_reg) begin
-                    pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
-                    branch_o = 1'b1;
-                end
-                else begin
-                    branch_o = 1'b0;
-                end
+              alu_a = pc;
+              alu_b = instr[31:12] << 12;
+              alu_op = 4'b0001;
+              alu_reg = alu_y;
             end
-        7'b0000011:                     // LB
+        7'b1101111:                     // JAL
             begin
-                alu_a = a_data_reg;
-                alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                alu_op = 4'b0001;
-                addr_reg = alu_y;
+              alu_reg = pc + 4;
+              pc_branch = instr[31] ? pc + {11'b1111_1111_111,instr[31],instr[19:12],instr[20],instr[30:21],1'b0} : pc + {11'b0000_0000_000,instr[31],instr[19:12],instr[20],instr[30:21],1'b0};
+              branch_o = 1'b1;
+            end
+        7'b1100111:                     // JALR
+            begin
+              alu_reg = pc + 4;
+              alu_a = a_data_reg;
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0001;
+              pc_branch = alu_y & (~1);
+              branch_o = 1'b1;
+            end
+        7'b1100011:
+            begin
+              case(instr[14:12])
+                3'b000:                 // BEQ
+                begin
+                  if(a_data_reg == b_data_reg) begin
+                      pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                      branch_o = 1'b1;
+                  end
+                  else begin
+                      branch_o = 1'b0;
+                  end
+                end
+                3'b001:                 // BNE
+                begin
+                  if(a_data_reg != b_data_reg) begin
+                      pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                      branch_o = 1'b1;
+                  end
+                  else begin
+                      branch_o = 1'b0;
+                  end
+                end
+              endcase
+            end
+        7'b0000011:                     // LB,LW
+            begin
+              alu_a = a_data_reg;
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0001;
+              addr_reg = alu_y;
             end
         7'b0100011:
             begin
-                if(instr[14:12] == 3'b000)     // SB
+              alu_a = a_data_reg;
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:25],instr[11:7]} : {20'b0000_0000_0000_0000_0000,instr[31:25],instr[11:7]};
+              alu_op = 4'b0001;
+              addr_reg = alu_y;
+              if(instr[14:12] == 3'b000)     // SB
+              begin
+                  alu_reg = b_data_reg[7:0];
+              end
+              else if(instr[14:12] == 3'b010)  // SW
+              begin
+                  alu_reg = b_data_reg;
+              end
+            end
+        7'b0010011:                         // alu rs1,imm
+            begin
+            alu_a = a_data_reg;
+            alu_reg = alu_y;
+            case(instr[14:12])
+              3'b000:                       // ADDI
                 begin
-                    alu_a = a_data_reg;
-                    alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:25],instr[11:7]} : {20'b0000_0000_0000_0000_0000,instr[31:25],instr[11:7]};
-                    alu_op = 4'b0001;
-                    addr_reg = alu_y;
-                    alu_reg = b_data_reg[7:0];
+                  alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+                  alu_op = 4'b0001;
                 end
-                else if(instr[14:12] == 3'b010)  // SW
+              3'b110:                       // ORI
                 begin
-                    alu_a = a_data_reg;
-                    alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:25],instr[11:7]} : {20'b0000_0000_0000_0000_0000,instr[31:25],instr[11:7]};
-                    alu_op = 4'b0001;
-                    addr_reg = alu_y;
-                    alu_reg = b_data_reg;
+                  alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+                  alu_op = 4'b0100;
                 end
+              3'b111:                       // ANDI
+                begin
+                  alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+                  alu_op = 4'b0011;
+                end
+              3'b001:                       // SLLI
+                begin
+                  alu_b = instr[25] ? 6'b00000 : instr[25:20];
+                  alu_op = 4'b0111;
+                end
+              3'b101:                       // SRLI
+                begin
+                  alu_b = instr[25] ? 6'b00000 : instr[25:20];
+                  alu_op = 4'b1000;
+                end
+            endcase
             end
-        7'b0010011:
-            begin
-            if(instr[14:12] == 3'b000)          // ADDI
-            begin
-                alu_a = a_data_reg;
-                alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                alu_op = 4'b0001;
-                alu_reg = alu_y;
-            end
-            else if (instr[14:12] == 3'b111)    // ANDI
-            begin
-                alu_a = a_data_reg;
-                alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                alu_op = 4'b0011;
-                alu_reg = alu_y;
-            end
-            end
-        7'b0110011:                             // ADD
+        7'b0110011:                             // alu rs1,rs2
             begin
                 alu_a = a_data_reg;
                 alu_b = b_data_reg;
-                alu_op = 4'b0001;
+                case(instr[14:12])
+                  3'b000:                       // ADD
+                    begin
+                      alu_op = 4'b0001;
+                    end
+                  3'b110:                       // OR
+                    begin
+                      alu_op = 4'b0100;
+                    end
+                  3'b111:                       // AND
+                    begin
+                      alu_op = 4'b0011;
+                    end
+                  3'b100:                       // XOR
+                    begin
+                      alu_op = 4'b0101;
+                    end
+                endcase
                 alu_reg = alu_y;
             end
     endcase
@@ -354,10 +429,10 @@ state_t nextstate;
 always_comb begin
     instr_type = inst_in[6:0];
     if(inst_in[14:12] == 3'b010) begin
-      wbm1_sel_o = 4'b1111;
+      wbm1_sel_o = 4'b1111;                  // LW,SW
     end
     else begin
-      wbm1_sel_o = 4'b0001;
+      wbm1_sel_o = 4'b0001;                  // LB,SB
     end
     if(state == STATE_IDLE) begin
       if(instr_type == 7'b0000011) begin
@@ -393,10 +468,10 @@ always_comb begin
     else begin
     case(state)
       STATE_IDLE:begin
-        if(instr_type == 7'b0000011)begin          // LB
+        if(instr_type == 7'b0000011)begin          // LB,LW
           nextstate = STATE_READ;
         end
-        else if(instr_type == 7'b0100011) begin    // SW，SB
+        else if(instr_type == 7'b0100011) begin    // SW,SB
           nextstate = STATE_WRITE;
         end
         else begin                                 // 不需要读�??????
@@ -459,9 +534,8 @@ always_comb begin
           end
         end
         STATE_READ:begin
-          if(wbm1_ack_i) begin                      // LB
+          if(wbm1_ack_i) begin                      // LB,LW
             data_out <= wbm1_dat_i;
-            //data_out <= wbm1_dat_i[7] ? {6'hffffff,wbm1_dat_i[7:0]} : {6'h000000,wbm1_dat_i[7:0]};
             wbm1_cyc_o <= 1'b0;
             wbm1_stb_o <= 1'b0;
             data_ack_o <= 1'b0;
@@ -501,7 +575,7 @@ logic [31:0] instr;
 
 always_comb begin
     instr = inst_in;
-    if(instr[6:0] != 7'b1100011)
+    if(instr[6:0] != 7'b1100011)             // BEQ,BNE
     begin
         rf_waddr = instr[11:7];
         rf_wdata = data_in;
@@ -599,19 +673,19 @@ assign idexe_rs1 = rs1;
 assign idexe_rs2 = rs2;
 
 always_comb begin
-  if (inst_in[6:0] != 7'b0110111) begin
-    rs1 = inst_in[19:15];
+  if (inst_in[6:0] != 7'b0110111 && inst_in[6:0] != 7'b0010111 && inst_in[6:0] != 7'b1101111) begin
+    rs1 = inst_in[19:15];                         // not LUI,AUIPC,JAL
   end
   else begin
     rs1 = 5'b00000;
   end
   if (inst_in[6:0] == 7'b1100011 || inst_in[6:0] == 7'b0100011 || inst_in[6:0] == 7'b0110011) begin
-    rs2 = inst_in[24:20];
+    rs2 = inst_in[24:20];                         // BEQ,SB,ADD
   end
   else begin
     rs2 = 5'b00000;
   end
-  if(instr[6:0] == 7'b0000011) begin
+  if(instr[6:0] == 7'b0000011) begin              // LB,LW
     load_rd = instr[11:7];
   end
   else begin
@@ -686,7 +760,7 @@ assign exemem_rd = rd;
 
 always_comb begin
   if (inst_in[6:0] != 7'b1100011 && inst_in[6:0] != 7'b0100011) begin
-    rd = inst_in[11:7];
+    rd = inst_in[11:7];                                    // not BEQ,SB
   end
   else begin
     rd = 5'b00000;
@@ -746,7 +820,7 @@ assign memwb_rd = rd;
 
 always_comb begin
   if (inst_in[6:0] != 7'b1100011 && inst_in[6:0] != 7'b0100011) begin
-    rd = inst_in[11:7];
+    rd = inst_in[11:7];                                 // not BEQ,SB
   end
   else begin
     rd = 5'b00000;
