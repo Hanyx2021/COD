@@ -5,14 +5,14 @@ module SEG_IF(
 
     input wire [31:0] pc_in,            // 输入的PC，可能�?�过BEQ传�??
     output reg [31:0] pc_out,           // 输出的PC
-    output reg [31:0] inst_out,         // 输出的指�??????
-    input wire branch_i,                // 是否读取传入的PC，为1则读�??????
+    output reg [31:0] inst_out,         // 输出的指�???????
+    input wire branch_i,                // 是否读取传入的PC，为1则读�???????
     input wire stall_i,                 // 是否正常状�?�可以更新pc_now_reg
     output reg pc_finish,
 
-    output reg [31:0] wbm0_adr_o,      // 应当输出PC取指�??????
+    output reg [31:0] wbm0_adr_o,      // 应当输出PC取指�???????
     output reg [31:0] wbm0_dat_o,      // 无用
-    input  wire [31:0] wbm0_dat_i,      // 输入的指令结�??????
+    input  wire [31:0] wbm0_dat_i,      // 输入的指令结�???????
     output reg wbm0_we_o,
     output reg [3:0] wbm0_sel_o,
     output reg wbm0_stb_o,
@@ -387,7 +387,7 @@ endmodule
 
 /* =================== MEM SEG ===============*/
 
-module SEG_MEM(                    // 待填�??????
+module SEG_MEM(                    // 待填�???????
     input wire clk_i,
     input wire rst_i,
 
@@ -401,8 +401,8 @@ module SEG_MEM(                    // 待填�??????
     output reg data_ack_o,
 
     output reg [31:0] wbm1_adr_o,      // 读写地址
-    output reg [31:0] wbm1_dat_o,      // 写入的数�??????
-    input  wire [31:0] wbm1_dat_i,      // 读出的数�??????
+    output reg [31:0] wbm1_dat_o,      // 写入的数�???????
+    input  wire [31:0] wbm1_dat_i,      // 读出的数�???????
     output reg wbm1_we_o,
     output reg [3:0] wbm1_sel_o,
     output reg wbm1_stb_o,
@@ -428,11 +428,17 @@ state_t nextstate;
 
 always_comb begin
     instr_type = inst_in[6:0];
-    if(inst_in[14:12] == 3'b010) begin
+    if(instr[14:12] == 3'b010) begin
       wbm1_sel_o = 4'b1111;                  // LW,SW
     end
     else begin
-      wbm1_sel_o = 4'b0001;                  // LB,SB
+      if(instr[6:0] == 7'b0000011)                      // LB
+      begin
+        wbm1_sel_o = 4'b1111;
+      end
+      else begin
+        wbm1_sel_o = 4'b1 << (wbm1_adr_o & 32'h3);     // SB
+      end
     end
     if(state == STATE_IDLE) begin
       if(instr_type == 7'b0000011) begin
@@ -474,7 +480,7 @@ always_comb begin
         else if(instr_type == 7'b0100011) begin    // SW,SB
           nextstate = STATE_WRITE;
         end
-        else begin                                 // 不需要读�??????
+        else begin                                 // 不需要读�???????
           nextstate = STATE_IDLE;
         end
       end
@@ -528,14 +534,24 @@ always_comb begin
             wbm1_adr_o <= raddr_in;
             data_ack_o <= 1'b1;
           end
-          else begin                              // 不需要读�??????
+          else begin                              // 不需要读�???????
             data_out <= alu_in;
             data_ack_o <= 1'b0;
           end
         end
         STATE_READ:begin
           if(wbm1_ack_i) begin                      // LB,LW
-            data_out <= wbm1_dat_i;
+            if(inst_in[14:12] == 3'b010) begin
+              data_out <= wbm1_dat_i;
+            end
+            else begin
+              case(wbm1_adr_o[1:0])
+                  2'b00: data_out <= {24'b0,wbm1_dat_i[7:0]};
+                  2'b01: data_out <= {24'b0,wbm1_dat_i[15:8]};
+                  2'b10: data_out <= {24'b0,wbm1_dat_i[23:16]};
+                  2'b11: data_out <= {24'b0,wbm1_dat_i[31:24]};
+              endcase
+            end
             wbm1_cyc_o <= 1'b0;
             wbm1_stb_o <= 1'b0;
             data_ack_o <= 1'b0;
@@ -575,7 +591,7 @@ logic [31:0] instr;
 
 always_comb begin
     instr = inst_in;
-    if(instr[6:0] != 7'b1100011)             // BEQ,BNE
+    if(instr[6:0] != 7'b1100011 && instr[6:0] != 7'b0100011)             // BEQ,BNE,SB,SW
     begin
         rf_waddr = instr[11:7];
         rf_wdata = data_in;
@@ -850,10 +866,10 @@ endmodule
 
 /*==================== ID confict ================*/
 module ID_confict(
-  input wire  [4:0]  idexe_rs1,              // exe阶段寄存�?????1
-  input wire  [4:0]  idexe_rs2,              // exe阶段寄存�?????2
-  input wire  [4:0]  exemem_rd,              // mem阶段�?????要LOAD的寄存器
-  input wire  [4:0]  memwb_rd,               // wb阶段�?????要写回的寄存�?????
+  input wire  [4:0]  idexe_rs1,              // exe阶段寄存�??????1
+  input wire  [4:0]  idexe_rs2,              // exe阶段寄存�??????2
+  input wire  [4:0]  exemem_rd,              // mem阶段�??????要LOAD的寄存器
+  input wire  [4:0]  memwb_rd,               // wb阶段�??????要写回的寄存�??????
   output reg  conflict_rs1,
   output reg  conflict_rs2,
   output reg [31:0] rs1_out,
