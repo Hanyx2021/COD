@@ -378,11 +378,8 @@ always_comb begin
                 if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000101) begin  // MIN
                   alu_a = a_data_reg;
                   alu_b = b_data_reg;
-                  if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) begin
+                  if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
                     alu_reg = a_data_reg < b_data_reg ? a_data_reg : b_data_reg;
-                  end
-                  else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1) begin
-                    alu_reg = a_data_reg > b_data_reg ? a_data_reg : b_data_reg;
                   end
                   else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
                     alu_reg = a_data_reg;
