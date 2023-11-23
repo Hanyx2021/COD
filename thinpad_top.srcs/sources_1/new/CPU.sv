@@ -569,7 +569,7 @@ always_comb begin
         end
         STATE_READ:begin
           if(wbm1_ack_i) begin                      // LB,LW
-            if(inst_in[14:12] == 3'b010) begin
+            if(instr[14:12] == 3'b010) begin
               data_out <= wbm1_dat_i;
             end
             else begin
