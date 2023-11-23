@@ -3,16 +3,16 @@ module SEG_IF(
     input wire clk_i,
     input wire rst_i,
 
-    input wire [31:0] pc_in,            // è¾“å…¥çš„PCï¼Œå¯èƒ½ï¿½?ï¿½è¿‡BEQä¼ ï¿½??
-    output reg [31:0] pc_out,           // è¾“å‡ºçš„PC
-    output reg [31:0] inst_out,         // è¾“å‡ºçš„æŒ‡ï¿½???????
-    input wire branch_i,                // æ˜¯å¦è¯»å–ä¼ å…¥çš„PCï¼Œä¸º1åˆ™è¯»ï¿½???????
-    input wire stall_i,                 // æ˜¯å¦æ­£å¸¸çŠ¶ï¿½?ï¿½å¯ä»¥æ›´æ–°pc_now_reg
+    input wire [31:0] pc_in,            // ÊäÈëµÄPC£¬Ìø×ªÊ±¿ÉÄÜ±ä»¯
+    output reg [31:0] pc_out,           // Êä³öµÄPC
+    output reg [31:0] inst_out,         // Êä³öµÄÖ¸Áî
+    input wire branch_i,                // ÊÇ·ñ¶ÁÈ¡´«ÈëµÄPC£¬Îª1Ôò¶ÁÊäÈëµÄpc£¬·ñÔòpc+4
+    input wire stall_i,                 // ÊÇ·ñ²»±»¶ÂÈû£¬Îª0±íÊ¾¿ÉÒÔ¸üĞÂpc_now_reg£¬Îª1¶ÂÈû
     output reg pc_finish,
 
-    output reg [31:0] wbm0_adr_o,      // åº”å½“è¾“å‡ºPCå–æŒ‡ï¿½???????
-    output reg [31:0] wbm0_dat_o,      // æ— ç”¨
-    input  wire [31:0] wbm0_dat_i,      // è¾“å…¥çš„æŒ‡ä»¤ç»“ï¿½???????
+    output reg [31:0] wbm0_adr_o,
+    output reg [31:0] wbm0_dat_o,
+    input  wire [31:0] wbm0_dat_i,
     output reg wbm0_we_o,
     output reg [3:0] wbm0_sel_o,
     output reg wbm0_stb_o,
@@ -387,7 +387,7 @@ endmodule
 
 /* =================== MEM SEG ===============*/
 
-module SEG_MEM(                    // å¾…å¡«ï¿½???????
+module SEG_MEM(
     input wire clk_i,
     input wire rst_i,
 
@@ -400,9 +400,9 @@ module SEG_MEM(                    // å¾…å¡«ï¿½???????
     output reg [4:0] load_rd,
     output reg data_ack_o,
 
-    output reg [31:0] wbm1_adr_o,      // è¯»å†™åœ°å€
-    output reg [31:0] wbm1_dat_o,      // å†™å…¥çš„æ•°ï¿½???????
-    input  wire [31:0] wbm1_dat_i,      // è¯»å‡ºçš„æ•°ï¿½???????
+    output reg [31:0] wbm1_adr_o,
+    output reg [31:0] wbm1_dat_o,
+    input  wire [31:0] wbm1_dat_i,
     output reg wbm1_we_o,
     output reg [3:0] wbm1_sel_o,
     output reg wbm1_stb_o,
@@ -480,7 +480,7 @@ always_comb begin
         else if(instr_type == 7'b0100011) begin    // SW,SB
           nextstate = STATE_WRITE;
         end
-        else begin                                 // ä¸éœ€è¦è¯»ï¿½???????
+        else begin                                 // ²»ĞèÒª¶Á»òĞ´
           nextstate = STATE_IDLE;
         end
       end
@@ -534,7 +534,7 @@ always_comb begin
             wbm1_adr_o <= raddr_in;
             data_ack_o <= 1'b1;
           end
-          else begin                              // ä¸éœ€è¦è¯»ï¿½???????
+          else begin                              // ²»ĞèÒª¶Á»òĞ´
             data_out <= alu_in;
             data_ack_o <= 1'b0;
           end
@@ -866,10 +866,10 @@ endmodule
 
 /*==================== ID confict ================*/
 module ID_confict(
-  input wire  [4:0]  idexe_rs1,              // exeé˜¶æ®µå¯„å­˜ï¿½??????1
-  input wire  [4:0]  idexe_rs2,              // exeé˜¶æ®µå¯„å­˜ï¿½??????2
-  input wire  [4:0]  exemem_rd,              // memé˜¶æ®µï¿½??????è¦LOADçš„å¯„å­˜å™¨
-  input wire  [4:0]  memwb_rd,               // wbé˜¶æ®µï¿½??????è¦å†™å›çš„å¯„å­˜ï¿½??????
+  input wire  [4:0]  idexe_rs1,              // exe½×¶Î¼Ä´æÆ÷rs1
+  input wire  [4:0]  idexe_rs2,              // exe½×¶Î¼Ä´æÆ÷rs2
+  input wire  [4:0]  exemem_rd,              // mem½×¶ÎrdÒªLOADµÄ¼Ä´æÆ÷
+  input wire  [4:0]  memwb_rd,               // wb½×¶ÎrdÒªĞ´»ØµÄ¼Ä´æÆ÷
   output reg  conflict_rs1,
   output reg  conflict_rs2,
   output reg [31:0] rs1_out,
