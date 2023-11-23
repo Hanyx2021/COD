@@ -378,7 +378,18 @@ always_comb begin
                 if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000101) begin  // MIN
                   alu_a = a_data_reg;
                   alu_b = b_data_reg;
-                  alu_reg = a_data_reg < b_data_reg;
+                  if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) begin
+                    alu_reg = a_data_reg < b_data_reg;
+                  end
+                  else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1) begin
+                    alu_reg = a_data_reg > b_data_reg;
+                  end
+                  else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
+                    alu_reg = 1;
+                  end
+                  else begin
+                    alu_reg = 0;
+                  end
                 end
                 if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0100000) begin  // XNOR
                   alu_a = a_data_reg;
