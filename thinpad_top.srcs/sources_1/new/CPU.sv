@@ -178,7 +178,7 @@ always_comb begin
             begin
                 rs1 = instr[19:15];
             end
-        7'b0110011:                    // ADD,AND,OR,XOR
+        7'b0110011:                    // ADD,AND,OR,XOR,MIN
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
@@ -351,27 +351,47 @@ always_comb begin
             end
         7'b0110011:                             // alu rs1,rs2
             begin
-                alu_a = a_data_reg;
-                alu_b = b_data_reg;
-                case(instr[14:12])
-                  3'b000:                       // ADD
-                    begin
-                      alu_op = 4'b0001;
-                    end
-                  3'b110:                       // OR
-                    begin
-                      alu_op = 4'b0100;
-                    end
-                  3'b111:                       // AND
-                    begin
-                      alu_op = 4'b0011;
-                    end
-                  3'b100:                       // XOR
-                    begin
-                      alu_op = 4'b0101;
-                    end
-                endcase
-                alu_reg = alu_y;
+                if (instr[14:12] == 3'b110 && instr[31:25] == 7'b0000000) begin  // OR
+                  alu_a = a_data_reg;
+                  alu_b = b_data_reg;
+                  alu_op = 4'b0100;
+                  alu_reg = alu_y;
+                end
+                if (instr[14:12] == 3'b111 && instr[31:25] == 7'b0000000) begin  // AND
+                  alu_a = a_data_reg;
+                  alu_b = b_data_reg;
+                  alu_op = 4'b0011;
+                  alu_reg = alu_y;
+                end
+                if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000000) begin  // XOR
+                  alu_a = a_data_reg;
+                  alu_b = b_data_reg;
+                  alu_op = 4'b0101;
+                  alu_reg = alu_y;
+                end
+                if (instr[14:12] == 3'b000 && instr[31:25] == 7'b0000000) begin  // ADD
+                  alu_a = a_data_reg;
+                  alu_b = b_data_reg;
+                  alu_op = 4'b0001;
+                  alu_reg = alu_y;
+                end
+                if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000101) begin  // MIN
+                  alu_a = a_data_reg;
+                  alu_b = b_data_reg;
+                  alu_reg = a_data_reg < b_data_reg;
+                end
+                if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0100000) begin  // XNOR
+                  alu_a = a_data_reg;
+                  alu_b = ~b_data_reg;
+                  alu_op = 4'b0101;
+                  alu_reg = alu_y;
+                end
+                if (instr[14:12] == 3'b001 && instr[31:25] == 7'b0010100) begin  // SBSET
+                  alu_a = a_data_reg;
+                  alu_b = 1 << (b_data_reg & 32'b11111);
+                  alu_op = 4'b0100;
+                  alu_reg = alu_y;
+                end
             end
     endcase
 end
