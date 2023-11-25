@@ -3,11 +3,11 @@ module SEG_IF(
     input wire clk_i,
     input wire rst_i,
 
-    input wire [31:0] pc_in,            // 输入的PC，跳转时可能变化
-    output reg [31:0] pc_out,           // 输出的PC
-    output reg [31:0] inst_out,         // 输出的指令
-    input wire branch_i,                // 是否读取传入的PC，为1则读输入的pc，否则pc+4
-    input wire stall_i,                 // 是否不被堵塞，为0表示可以更新pc_now_reg，为1堵塞
+    input wire [31:0] pc_in,            // ?????PC??????????仯
+    output reg [31:0] pc_out,           // ?????PC
+    output reg [31:0] inst_out,         // ????????
+    input wire branch_i,                // ??????????PC???1????????pc??????pc+4
+    input wire stall_i,                 // ???????????0??????????pc_now_reg???1????
     output reg pc_finish,
 
     output reg [31:0] wbm0_adr_o,
@@ -122,9 +122,9 @@ module SEG_ID(
     input wire [31:0] inst_in,
     input wire [31:0] pc_in,
     output wire [31:0] pc_out,
-    output reg  [4:0]  rf_raddr_a,
+    output reg  [5:0]  rf_raddr_a,
     input  wire [31:0] rf_rdata_a,
-    output reg  [4:0]  rf_raddr_b,
+    output reg  [5:0]  rf_raddr_b,
     input  wire [31:0] rf_rdata_b,
     input wire a_conflict,
     input wire b_conflict,
@@ -132,13 +132,15 @@ module SEG_ID(
     input wire [31:0] b_in,
     output reg [31:0] a_out,
     output reg [31:0] b_out,
-    output reg [31:0] inst_out
+    output reg [31:0] inst_out,
+    output reg [11:0] csrindex,
+    input wire [5:0] csrreg
     );
 
 logic [31:0] instr;
 logic [31:0] pc;
 logic [6:0] instr_type;
-logic [4:0] rs1, rs2;
+logic [5:0] rs1, rs2;
 logic [31:0] a_data_reg;
 logic [31:0] b_data_reg;
 
@@ -178,10 +180,16 @@ always_comb begin
             begin
                 rs1 = instr[19:15];
             end
-        7'b0110011:                    // ADD,AND,OR,XOR,MIN
+        7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
+            end
+        7'b1110011:                    // CSRRC,CSRRS,CSRRW
+            begin
+                rs1 = instr[19:15];
+                csrindex = index[31:20];
+                rs2 = csrreg;
             end
     endcase
 end
@@ -400,6 +408,9 @@ always_comb begin
                   alu_op = 4'b0100;
                   alu_reg = alu_y;
                 end
+                if(instr[14:12] == 3'b011 && instr[31:25] == 7'b0000000) begin   // SLTU
+                  alu_reg = a_data_reg < b_data_reg;
+                end
             end
     endcase
 end
@@ -425,7 +436,7 @@ module SEG_MEM(
     input wire [31:0] raddr_in,
     output reg [31:0] data_out,
     output reg [31:0] inst_out,
-    output reg [4:0] load_rd,
+    output reg [5:0] load_rd,
     output reg data_ack_o,
 
     output reg [31:0] wbm1_adr_o,
@@ -473,7 +484,7 @@ always_comb begin
         load_rd = inst_in[11:7];
       end
       else begin
-        load_rd = 5'b00000;
+        load_rd = 6'b000000;
       end
     end
     else begin
@@ -481,7 +492,7 @@ always_comb begin
         load_rd = instr[11:7];
       end
       else begin
-        load_rd = 5'b00000;
+        load_rd = 6'b000000;
       end
     end
 end
@@ -508,7 +519,7 @@ always_comb begin
         else if(instr_type == 7'b0100011) begin    // SW,SB
           nextstate = STATE_WRITE;
         end
-        else begin                                 // 不需要读或写
+        else begin                                 // ?????????д
           nextstate = STATE_IDLE;
         end
       end
@@ -562,7 +573,7 @@ always_comb begin
             wbm1_adr_o <= raddr_in;
             data_ack_o <= 1'b1;
           end
-          else begin                              // 不需要读或写
+          else begin                              // ?????????д
             data_out <= alu_in;
             data_ack_o <= 1'b0;
           end
@@ -610,7 +621,7 @@ module SEG_WB(
         input wire [31:0] data_in,
         input wire [31:0] inst_in,
 
-        output reg  [4:0]  rf_waddr,
+        output reg  [5:0]  rf_waddr,
         output reg  [31:0] rf_wdata,
         output reg  rf_we
     );
@@ -692,9 +703,9 @@ module REG_IDEXE(
     output reg [31:0] a_out,
     input wire [31:0] b_in,
     output reg [31:0] b_out,
-    input wire [4:0] load_rd2,
-    output reg [4:0] idexe_rs1,
-    output reg [4:0] idexe_rs2,
+    input wire [5:0] load_rd2,
+    output reg [5:0] idexe_rs1,
+    output reg [5:0] idexe_rs2,
     output reg if_stall_o,
     input wire stall_i,
     input wire bubble_i,
@@ -705,9 +716,9 @@ reg [31:0] pc;
 reg [31:0] instr;
 reg [31:0] a;
 reg [31:0] b;
-reg [4:0] rs1;
-reg [4:0] rs2;
-reg [4:0] load_rd;
+reg [5:0] rs1;
+reg [5:0] rs2;
+reg [5:0] load_rd;
 
 assign pc_out = pc;
 assign inst_out = instr;
@@ -721,19 +732,19 @@ always_comb begin
     rs1 = inst_in[19:15];                         // not LUI,AUIPC,JAL
   end
   else begin
-    rs1 = 5'b00000;
+    rs1 = 6'b000000;
   end
   if (inst_in[6:0] == 7'b1100011 || inst_in[6:0] == 7'b0100011 || inst_in[6:0] == 7'b0110011) begin
     rs2 = inst_in[24:20];                         // BEQ,SB,ADD
   end
   else begin
-    rs2 = 5'b00000;
+    rs2 = 6'b000000;
   end
   if(instr[6:0] == 7'b0000011) begin              // LB,LW
     load_rd = instr[11:7];
   end
   else begin
-    load_rd = 5'b00000;
+    load_rd = 6'b000000;
   end
   if ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)) || (load_rd2 != '0 && (load_rd2 == rs1 || load_rd2 == rs2))) begin
     if_stall_o = 'b1;
@@ -784,7 +795,7 @@ module REG_EXEMEM(
     output reg [31:0] alu_out,
     input wire [31:0] b_in,
     output reg [31:0] b_out,
-    output reg [4:0] exemem_rd,
+    output reg [5:0] exemem_rd,
     input wire stall_i,
     input wire bubble_i,
     input wire pc_finish
@@ -794,7 +805,7 @@ reg [31:0] pc;
 reg [31:0] instr;
 reg [31:0] alu;
 reg [31:0] b;
-reg [4:0] rd;
+reg [5:0] rd;
 
 assign pc_out = pc;
 assign inst_out = instr;
@@ -807,7 +818,7 @@ always_comb begin
     rd = inst_in[11:7];                                    // not BEQ,SB
   end
   else begin
-    rd = 5'b00000;
+    rd = 6'b000000;
   end
 end
 
@@ -848,7 +859,7 @@ module REG_MEMWB(
     output reg [31:0] data_out,
     input wire [31:0] inst_in,
     output reg [31:0] inst_out,
-    output reg [4:0] memwb_rd,
+    output reg [5:0] memwb_rd,
     input wire stall_i,
     input wire bubble_i,
     input wire pc_finish
@@ -856,7 +867,7 @@ module REG_MEMWB(
 
 reg [31:0] data;
 reg [31:0] instr;
-reg [4:0] rd;
+reg [5:0] rd;
 
 assign data_out = data;
 assign inst_out = instr;
@@ -867,7 +878,7 @@ always_comb begin
     rd = inst_in[11:7];                                 // not BEQ,SB
   end
   else begin
-    rd = 5'b00000;
+    rd = 6'b000000;
   end
 end
 
@@ -894,10 +905,10 @@ endmodule
 
 /*==================== ID confict ================*/
 module ID_confict(
-  input wire  [4:0]  idexe_rs1,              // exe阶段寄存器rs1
-  input wire  [4:0]  idexe_rs2,              // exe阶段寄存器rs2
-  input wire  [4:0]  exemem_rd,              // mem阶段rd要LOAD的寄存器
-  input wire  [4:0]  memwb_rd,               // wb阶段rd要写回的寄存器
+  input wire  [5:0]  idexe_rs1,              // exe??μ????rs1
+  input wire  [5:0]  idexe_rs2,              // exe??μ????rs2
+  input wire  [5:0]  exemem_rd,              // mem???rd?LOAD??????
+  input wire  [5:0]  memwb_rd,               // wb???rd?д???????
   output reg  conflict_rs1,
   output reg  conflict_rs2,
   output reg [31:0] rs1_out,

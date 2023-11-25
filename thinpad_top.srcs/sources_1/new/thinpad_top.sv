@@ -121,12 +121,14 @@ module thinpad_top (
   logic [31:0]alu_a;
   logic [31:0]alu_b;
   logic [31:0]alu_y;
-  logic [4:0]rf_waddr;
+  logic [5:0]rf_waddr;
   logic [31:0]rf_wdata;
-  logic [4:0]raddr_a;
+  logic [5:0]raddr_a;
   logic [31:0]rdata_a;
-  logic [4:0]raddr_b;
+  logic [5:0]raddr_b;
   logic [31:0]rdata_b;
+  logic [11:0]csrindex;
+  logic [5:0]csrreg;
   logic rf_we;
 
     register u_reg(
@@ -141,6 +143,11 @@ module thinpad_top (
     .we(rf_we)
   );
   
+  csr_converter csrconv(
+    .csrindex(csrindex),
+    .csrreg(csrreg)
+  );
+
      ALU u_alu(
       .op(alu_op),
       .rs1(alu_a),
@@ -453,7 +460,9 @@ logic [31:0] b_in;
     .rf_raddr_a(raddr_a),
     .rf_raddr_b(raddr_b),
     .rf_rdata_a(rdata_a),
-    .rf_rdata_b(rdata_b)
+    .rf_rdata_b(rdata_b),
+    .csrindex(csrindex),
+    .csrreg(csrreg)
   );
   /* =========== Lab6 ID end ============== */
 
@@ -492,7 +501,7 @@ logic [31:0] inst_exemem_i;
   logic [31:0] inst_exemem_o;
   logic [31:0] data_memwb_i;
   logic [31:0] inst_memwb_i;
-  logic [4:0] load_rd2;
+  logic [5:0] load_rd2;
   logic data_ack_o;
 
   SEG_MEM seg_mem(
@@ -537,10 +546,10 @@ logic [31:0] inst_exemem_i;
 
     /* =========== Lab6 REGS ===============*/
 
-    logic [4:0] idexe_rs1;
-    logic [4:0] idexe_rs2;
-    logic [4:0] exemem_rd;
-    logic [4:0] memwb_rd;
+    logic [5:0] idexe_rs1;
+    logic [5:0] idexe_rs2;
+    logic [5:0] exemem_rd;
+    logic [5:0] memwb_rd;
     logic pc_stall;
     logic ifid_stall;
     logic ifid_bubble;
