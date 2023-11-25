@@ -187,10 +187,17 @@ always_comb begin
             end
         7'b1110011:                    // CSRRC,CSRRS,CSRRW
             begin
+              if (instr[14:12] != 3'b000) begin
                 rs1 = instr[19:15];
                 csrindex = instr[31:20];
                 rs2 = csrreg;
+              end
+              else begin               // ECALL
+                rs1 = 6'b000000;
+                rs2 = 6'b000000;
+              end
             end
+        
     endcase
 end
 
@@ -244,6 +251,7 @@ logic [31:0] b_data_reg;
 logic [31:0] alu_reg;
 logic [31:0] addr_reg;
 logic [6:0] instr_type;
+logic [1:0] exception_status;   // 00:U, 01:S, 11:M
 
 always_comb begin
     instr = inst_in;
@@ -453,6 +461,20 @@ always_comb begin
           waddr_csr = instr[31:20];
           wdata_csr = a_data_reg;
           alu_reg = b_data_reg;
+        end
+        3'b000:                      
+        begin
+          if (instr[31:20] == 12'b0000_0000_0000) begin // ECALL
+            we_csr = 1;
+            waddr_csr = 12'b0011_0100_0010; // mcause
+            case (exception_status)
+              2'b00: wdata_csr = {1'b0, 31'd8}; // U-mode
+              2'b01: wdata_csr = {1'b0, 31'd9}; // S-mode
+              2'b11: wdata_csr = {1'b0, 31'd10}; // M-mode
+            endcase
+          end
+          if (instr[31:20] == 12'b0000_0000_0001) begin // EBREAK
+          end
         end
       endcase
     end
