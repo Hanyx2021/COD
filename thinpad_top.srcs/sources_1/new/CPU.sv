@@ -3,11 +3,11 @@ module SEG_IF(
     input wire clk_i,
     input wire rst_i,
 
-    input wire [31:0] pc_in,            // ?????PC??????????Å£
-    output reg [31:0] pc_out,           // ?????PC
-    output reg [31:0] inst_out,         // ????????
-    input wire branch_i,                // ??????????PC???1????????pc??????pc+4
-    input wire stall_i,                 // ???????????0??????????pc_now_reg???1????
+    input wire [31:0] pc_in,            // input PC, may change when jumping
+    output reg [31:0] pc_out,           // output PC
+    output reg [31:0] inst_out,         // output instruction
+    input wire branch_i,                // '1' for read input PC, '0' for PC+4
+    input wire stall_i,                 // '0' for update pc_now_reg, '1' for stall
     output reg pc_finish,
 
     output reg [31:0] wbm0_adr_o,
@@ -565,7 +565,7 @@ always_comb begin
         else if(instr_type == 7'b0100011) begin    // SW,SB
           nextstate = STATE_WRITE;
         end
-        else begin                                 // ?????????ß’
+        else begin                                 // no need to read or write
           nextstate = STATE_IDLE;
         end
       end
@@ -619,7 +619,7 @@ always_comb begin
             wbm1_adr_o <= raddr_in;
             data_ack_o <= 1'b1;
           end
-          else begin                              // ?????????ß’
+          else begin                              // no need to read or write
             data_out <= alu_in;
             data_ack_o <= 1'b0;
           end
@@ -950,11 +950,11 @@ endmodule
 /* =================== MEMWB REG END =================*/
 
 /*==================== ID confict ================*/
-module ID_confict(
-  input wire  [5:0]  idexe_rs1,              // exe??¶Ã????rs1
-  input wire  [5:0]  idexe_rs2,              // exe??¶Ã????rs2
-  input wire  [5:0]  exemem_rd,              // mem???rd?LOAD??????
-  input wire  [5:0]  memwb_rd,               // wb???rd?ß’???????
+module ID_confict(                           // for DATA FORWARDING
+  input wire  [5:0]  idexe_rs1,              // register rs1 for stage EXE
+  input wire  [5:0]  idexe_rs2,              // register rs2 for stage EXE
+  input wire  [5:0]  exemem_rd,              // the dest register of instruction LOAD to be used at stage MEM
+  input wire  [5:0]  memwb_rd,               // the register to which rd writes back at stage WB
   output reg  conflict_rs1,
   output reg  conflict_rs2,
   output reg [31:0] rs1_out,
