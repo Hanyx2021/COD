@@ -129,7 +129,11 @@ module thinpad_top (
   logic [31:0]rdata_b;
   logic [11:0]csrindex;
   logic [5:0]csrreg;
+  logic [11:0]csrindex_2;
+  logic [5:0]csrreg_2;
+  logic [31:0]csr_wdata;
   logic rf_we;
+  logic rf_we_csr;
 
     register u_reg(
     .clk(sys_clk),
@@ -140,12 +144,20 @@ module thinpad_top (
     .rdata_a(rdata_a),
     .raddr_b(raddr_b),
     .rdata_b(rdata_b),
-    .we(rf_we)
+    .we(rf_we),
+    .waddr_csr(csrreg_2),
+    .wdata_csr(csr_wdata),
+    .we_csr(rf_we_csr)
   );
   
-  csr_converter csrconv(
+  csr_converter csrconv_1(
     .csrindex(csrindex),
     .csrreg(csrreg)
+  );
+
+  csr_converter csrconv_2(
+    .csrindex(csrindex_2),
+    .csrreg(csrreg_2)
   );
 
      ALU u_alu(
@@ -490,7 +502,10 @@ logic [31:0] inst_exemem_i;
     .alu_op(alu_op),
     .alu_a(alu_a),
     .alu_b(alu_b),
-    .alu_y(alu_y)
+    .alu_y(alu_y),
+    .waddr_csr(csrindex_2),
+    .wdata_csr(csr_wdata),
+    .we_csr(rf_we_csr)
   );
   /* =========== Lab6 EXE end ============== */
 

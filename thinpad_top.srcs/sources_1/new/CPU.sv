@@ -188,7 +188,7 @@ always_comb begin
         7'b1110011:                    // CSRRC,CSRRS,CSRRW
             begin
                 rs1 = instr[19:15];
-                csrindex = index[31:20];
+                csrindex = instr[31:20];
                 rs2 = csrreg;
             end
     endcase
@@ -224,7 +224,10 @@ module SEG_EXE(
     output reg [31:0] inst_out,
     input wire [31:0] rdata_a,
     input wire [31:0] rdata_b,
-    output wire [31:0] raddr_out,
+    output reg [31:0] raddr_out,
+    output reg [11:0] waddr_csr,
+    output reg [31:0] wdata_csr,
+    output reg we_csr,
     output reg  [31:0] alu_a,
     output reg  [31:0] alu_b,
     output reg  [ 3:0] alu_op,
@@ -409,10 +412,53 @@ always_comb begin
                   alu_reg = alu_y;
                 end
                 if(instr[14:12] == 3'b011 && instr[31:25] == 7'b0000000) begin   // SLTU
-                  alu_reg = a_data_reg < b_data_reg;
+                  if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0)
+                  begin
+                    alu_reg = a_data_reg < b_data_reg;
+                  end
+                  else if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b1)
+                  begin
+                    alu_reg = 1'b1;
+                  end
+                  else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0)
+                  begin
+                    alu_reg = 1'b0;
+                  end
+                  else
+                  begin
+                    alu_reg = a_data_reg < b_data_reg;
+                  end
                 end
             end
     endcase
+    if(instr_type == 7'b1110011) begin
+      case(instr[14:12])
+        3'b011:                      // CSRRC
+        begin
+          we_csr = 1;
+          waddr_csr = instr[31:20];
+          wdata_csr = b_data_reg & (~a_data_reg);
+          alu_reg = b_data_reg;
+        end
+        3'b010:                      // CSRRS
+        begin
+          we_csr = 1;
+          waddr_csr = instr[31:20];
+          wdata_csr = b_data_reg | a_data_reg;
+          alu_reg = b_data_reg;
+        end
+        3'b001:                      // CSRRW
+        begin
+          we_csr = 1;
+          waddr_csr = instr[31:20];
+          wdata_csr = a_data_reg;
+          alu_reg = b_data_reg;
+        end
+      endcase
+    end
+    else begin
+      we_csr = 0;
+    end
 end
 
 assign pc_out = pc;
