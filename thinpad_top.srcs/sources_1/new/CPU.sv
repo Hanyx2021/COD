@@ -132,9 +132,7 @@ module SEG_ID(
     input wire [31:0] b_in,
     output reg [31:0] a_out,
     output reg [31:0] b_out,
-    output reg [31:0] inst_out,
-    output reg [11:0] csrindex,
-    input wire [5:0] csrreg
+    output reg [31:0] inst_out
     );
 
 logic [31:0] instr;
@@ -189,15 +187,8 @@ always_comb begin
             begin
               if (instr[14:12] != 3'b000) begin
                 rs1 = instr[19:15];
-                csrindex = instr[31:20];
-                rs2 = csrreg;
-              end
-              else begin               // ECALL
-                rs1 = 6'b000000;
-                rs2 = 6'b000000;
               end
             end
-        
     endcase
 end
 
@@ -232,16 +223,37 @@ module SEG_EXE(
     input wire [31:0] rdata_a,
     input wire [31:0] rdata_b,
     output reg [31:0] raddr_out,
-    output reg [11:0] waddr_csr,
-    output reg [31:0] wdata_csr,
-    output reg we_csr,
     output reg  [31:0] alu_a,
     output reg  [31:0] alu_b,
     output reg  [ 3:0] alu_op,
     input  wire [31:0] alu_y,
     output reg  [31:0] alu_out,
     output reg branch_o,
-    output reg [31:0] pc_branch
+    output reg [31:0] pc_branch,
+    output reg mstatus_we,
+    output reg [31:0] mstatus_in,
+    input wire [31:0] mstatus_out,
+    output reg mie_we,
+    output reg [31:0] mie_in,
+    input wire [31:0] mie_out,
+    output reg mtvec_we,
+    output reg [31:0] mtvec_in,
+    input wire [31:0] mtvec_out,
+    output reg mscratch_we,
+    output reg [31:0] mscratch_in,
+    input wire [31:0] mscratch_out,
+    output reg mepc_we,
+    output reg [31:0] mepc_in,
+    input wire [31:0] mepc_out,
+    output reg mcause_we,
+    output reg [31:0] mcause_in,
+    input wire [31:0] mcause_out,
+    output reg mip_we,
+    output reg [31:0] mip_in,
+    input wire [31:0] mip_out,
+    output reg satp_we,
+    output reg [31:0] satp_in,
+    input wire [31:0] satp_out
     );
 
 logic [31:0] instr;
@@ -251,6 +263,8 @@ logic [31:0] b_data_reg;
 logic [31:0] alu_reg;
 logic [31:0] addr_reg;
 logic [6:0] instr_type;
+logic [31:0] csr_in;
+logic [31:0] csr_out;
 logic [1:0] exception_status;   // 00:U, 01:S, 11:M
 
 always_comb begin
@@ -262,6 +276,140 @@ always_comb begin
     if(instr_type != 7'b1100011) begin
       branch_o = 1'b0;
     end
+    if(instr_type == 7'b1110011)begin
+      case(instr[14:12])
+        3'b011:                      // CSRRC
+        begin
+          csr_out = csr_in & (~a_data_reg);
+          alu_reg = csr_in;
+        end
+        3'b010:                      // CSRRS
+        begin
+          csr_out = csr_in | a_data_reg;
+          alu_reg = csr_in;
+        end
+        3'b001:                      // CSRRW
+        begin
+          csr_out = a_data_reg;
+          alu_reg = csr_in;
+        end
+      endcase
+      case(instr[31:20])
+        12'b0011_0000_0000:
+        begin
+          csr_in = mstatus_out;             // 32:mstatus
+          mstatus_in = csr_out;
+          mstatus_we = 1'b1;
+          mie_we = 1'b0;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b0;
+          mcause_we = 1'b0;
+          mip_we = 1'b0;
+          satp_we = 1'b0;
+        end
+        12'b0011_0000_0100:
+        begin
+          csr_in = mie_out;             // 33:mie
+          mie_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b1;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b0;
+          mcause_we = 1'b0;
+          mip_we = 1'b0;
+          satp_we = 1'b0;
+        end
+        12'b0011_0000_0101:
+        begin
+          csr_in = mtvec_out;             // 34:mtvec
+          mtvec_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b0;
+          mtvec_we = 1'b1;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b0;
+          mcause_we = 1'b0;
+          mip_we = 1'b0;
+          satp_we = 1'b0;
+        end
+        12'b0011_0100_0000:
+        begin
+          csr_in = mscratch_out;             // 35:mscratch
+          mscratch_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b0;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b1;
+          mepc_we = 1'b0;
+          mcause_we = 1'b0;
+          mip_we = 1'b0;
+          satp_we = 1'b0;
+        end
+        12'b0011_0100_0001:
+        begin
+          csr_in = mepc_out;             // 36:mepc
+          mepc_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b0;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b1;
+          mcause_we = 1'b0;
+          mip_we = 1'b0;
+          satp_we = 1'b0;
+        end
+        12'b0011_0100_0010:
+        begin
+          csr_in = mcause_out;             // 37:mcause
+          mcause_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b0;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b0;
+          mcause_we = 1'b1;
+          mip_we = 1'b0;
+          satp_we = 1'b0;
+        end
+        12'b0011_0100_0100:
+        begin
+          csr_in = mip_out;             // 38:mip
+          mip_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b0;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b0;
+          mcause_we = 1'b0;
+          mip_we = 1'b1;
+          satp_we = 1'b0;
+        end
+        12'b0001_1000_0000:
+        begin
+          csr_in = satp_out;             // 39:satp
+          satp_in = csr_out;
+          mstatus_we = 1'b0;
+          mie_we = 1'b0;
+          mtvec_we = 1'b0;
+          mscratch_we = 1'b0;
+          mepc_we = 1'b0;
+          mcause_we = 1'b0;
+          mip_we = 1'b0;
+          satp_we = 1'b1;
+        end
+      endcase
+    end
+    else begin
+      mstatus_we = 1'b0;
+      mie_we = 1'b0;
+      mtvec_we = 1'b0;
+      mscratch_we = 1'b0;
+      mepc_we = 1'b0;
+      mcause_we = 1'b0;
+      mip_we = 1'b0;
+      satp_we = 1'b0;
     case(instr_type)
         7'b0110111:                     // LUI
             begin
@@ -439,48 +587,7 @@ always_comb begin
                 end
             end
     endcase
-    if(instr_type == 7'b1110011) begin
-      case(instr[14:12])
-        3'b011:                      // CSRRC
-        begin
-          we_csr = 1;
-          waddr_csr = instr[31:20];
-          wdata_csr = b_data_reg & (~a_data_reg);
-          alu_reg = b_data_reg;
-        end
-        3'b010:                      // CSRRS
-        begin
-          we_csr = 1;
-          waddr_csr = instr[31:20];
-          wdata_csr = b_data_reg | a_data_reg;
-          alu_reg = b_data_reg;
-        end
-        3'b001:                      // CSRRW
-        begin
-          we_csr = 1;
-          waddr_csr = instr[31:20];
-          wdata_csr = a_data_reg;
-          alu_reg = b_data_reg;
-        end
-        3'b000:                      
-        begin
-          if (instr[31:20] == 12'b0000_0000_0000) begin // ECALL
-            we_csr = 1;
-            waddr_csr = 12'b0011_0100_0010; // mcause
-            case (exception_status)
-              2'b00: wdata_csr = {1'b0, 31'd8}; // U-mode
-              2'b01: wdata_csr = {1'b0, 31'd9}; // S-mode
-              2'b11: wdata_csr = {1'b0, 31'd10}; // M-mode
-            endcase
-          end
-          if (instr[31:20] == 12'b0000_0000_0001) begin // EBREAK
-          end
-        end
-      endcase
-    end
-    else begin
-      we_csr = 0;
-    end
+  end
 end
 
 assign pc_out = pc;

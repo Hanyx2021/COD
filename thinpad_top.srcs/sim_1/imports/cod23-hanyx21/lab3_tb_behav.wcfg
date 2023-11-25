@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="867643333fs"></ZoomStartTime>
-      <ZoomEndTime time="1253643334fs"></ZoomEndTime>
-      <Cursor1Time time="1069643333fs"></Cursor1Time>
+      <ZoomStartTime time="53146334fs"></ZoomStartTime>
+      <ZoomEndTime time="849146335fs"></ZoomEndTime>
+      <Cursor1Time time="185813000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="174"></NameColumnWidth>
+      <NameColumnWidth column_width="164"></NameColumnWidth>
       <ValueColumnWidth column_width="72"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="23" />
+   <WVObjectSize size="16" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -56,60 +56,32 @@
       <obj_property name="ElementShortName">instr[31:0]</obj_property>
       <obj_property name="ObjectShortName">instr[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/u_reg/waddr" type="array">
-      <obj_property name="ElementShortName">waddr[4:0]</obj_property>
-      <obj_property name="ObjectShortName">waddr[4:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/u_reg/wdata" type="array">
-      <obj_property name="ElementShortName">wdata[31:0]</obj_property>
-      <obj_property name="ObjectShortName">wdata[31:0]</obj_property>
-   </wvobject>
    <wvobject fp_name="/tb/dut/u_reg/data_reg" type="array">
       <obj_property name="ElementShortName">data_reg[0:31][31:0]</obj_property>
       <obj_property name="ObjectShortName">data_reg[0:31][31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_adr_o" type="array">
-      <obj_property name="ElementShortName">wbm1_adr_o[31:0]</obj_property>
-      <obj_property name="ObjectShortName">wbm1_adr_o[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/mepc/we" type="logic">
+      <obj_property name="ElementShortName">we</obj_property>
+      <obj_property name="ObjectShortName">we</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_dat_o" type="array">
-      <obj_property name="ElementShortName">wbm1_dat_o[31:0]</obj_property>
-      <obj_property name="ObjectShortName">wbm1_dat_o[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/seg_exe/mepc_in" type="array">
+      <obj_property name="ElementShortName">mepc_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mepc_in[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_dat_i" type="array">
-      <obj_property name="ElementShortName">wbm1_dat_i[31:0]</obj_property>
-      <obj_property name="ObjectShortName">wbm1_dat_i[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/seg_exe/csr_out" type="array">
+      <obj_property name="ElementShortName">csr_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">csr_out[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_we_o" type="logic">
-      <obj_property name="ElementShortName">wbm1_we_o</obj_property>
-      <obj_property name="ObjectShortName">wbm1_we_o</obj_property>
+   <wvobject fp_name="/tb/dut/seg_exe/mepc_out" type="array">
+      <obj_property name="ElementShortName">mepc_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mepc_out[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_sel_o" type="array">
-      <obj_property name="ElementShortName">wbm1_sel_o[3:0]</obj_property>
-      <obj_property name="ObjectShortName">wbm1_sel_o[3:0]</obj_property>
+   <wvobject fp_name="/tb/dut/seg_exe/csr_in" type="array">
+      <obj_property name="ElementShortName">csr_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">csr_in[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_stb_o" type="logic">
-      <obj_property name="ElementShortName">wbm1_stb_o</obj_property>
-      <obj_property name="ObjectShortName">wbm1_stb_o</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_ack_i" type="logic">
-      <obj_property name="ElementShortName">wbm1_ack_i</obj_property>
-      <obj_property name="ObjectShortName">wbm1_ack_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_err_i" type="logic">
-      <obj_property name="ElementShortName">wbm1_err_i</obj_property>
-      <obj_property name="ObjectShortName">wbm1_err_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_rty_i" type="logic">
-      <obj_property name="ElementShortName">wbm1_rty_i</obj_property>
-      <obj_property name="ObjectShortName">wbm1_rty_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_cyc_o" type="logic">
-      <obj_property name="ElementShortName">wbm1_cyc_o</obj_property>
-      <obj_property name="ObjectShortName">wbm1_cyc_o</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/state" type="array">
-      <obj_property name="ElementShortName">state[2:0]</obj_property>
-      <obj_property name="ObjectShortName">state[2:0]</obj_property>
+   <wvobject fp_name="/tb/dut/seg_exe/a_data_reg" type="array">
+      <obj_property name="ElementShortName">a_data_reg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">a_data_reg[31:0]</obj_property>
    </wvobject>
 </wave_config>

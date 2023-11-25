@@ -29,19 +29,9 @@ module register(
     input wire[5:0] raddr_a,
     output reg[31:0] rdata_a,
     input wire[5:0] raddr_b,
-    output reg[31:0] rdata_b,
-    input wire[5:0] waddr_csr,
-    input wire [31:0] wdata_csr,
-    input wire we_csr
+    output reg[31:0] rdata_b
     );
-    // 33:mie
-    // 34:mtvec
-    // 35:mscratch
-    // 36:mepc
-    // 37:mcause
-    // 38:mip
-    // 39:satp
-    reg [31:0] data_reg [0:39];
+    reg [31:0] data_reg [0:31];
     reg a_reg;
     reg b_reg;
     integer i;
@@ -50,7 +40,7 @@ module register(
         if(reset) begin
             a_reg <= 'b0;
             b_reg <= 'b0;
-            for(i = 0 ;i < 40;i++)begin 
+            for(i = 0 ;i < 32;i++)begin
                 data_reg[i] <= 'b0;
             end
         end
@@ -60,16 +50,39 @@ module register(
                     data_reg[waddr] <= wdata;
                 end
             end
-            if(we_csr) begin
-                data_reg[waddr_csr] <= wdata_csr;
-            end
         end
     end
     assign    rdata_a = data_reg[raddr_a];
     assign    rdata_b = data_reg[raddr_b];
 endmodule
 
-module csr_converter(
+module CSR_reg(
+    input wire clk,
+    input wire reset,
+
+    input wire we,
+    input wire[31:0] data_in,
+    output reg[31:0] data_out
+);
+
+reg [31:0] data;
+
+always_ff @ (posedge clk or posedge reset) begin
+
+    if(reset) begin
+        data <= 32'b0;
+    end
+    else begin
+        if(we) begin
+            data <= data_in;
+        end
+    end
+    assign data_out = data;
+end
+
+endmodule
+
+/*module csr_converter(
     input wire [11:0] csrindex,
     output reg [5:0] csrreg
 );
@@ -111,4 +124,4 @@ always_comb begin
     endcase
 end
 
-endmodule
+endmodule*/
