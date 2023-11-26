@@ -82,3 +82,30 @@ end
 assign data_out = data;
 
 endmodule
+
+module MODE_reg(
+    input wire clk,
+    input wire reset,
+
+    input wire we,
+    input wire[1:0] data_in,
+    output reg[1:0] data_out
+);
+
+reg [1:0] data;
+
+always_ff @ (posedge clk or posedge reset) begin
+
+    if(reset) begin
+        data <= 2'b11;
+    end
+    else begin
+        if(we) begin
+            data <= data_in;
+        end
+    end
+end
+
+assign data_out = data;
+
+endmodule

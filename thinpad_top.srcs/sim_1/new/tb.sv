@@ -46,8 +46,8 @@ module tb;
   wire uart_tsre;  // 数据发�?�完毕标�?
 
   // Windows �?要注意路径分隔符的转义，例如 "D:\\foo\\bar.bin"
-  //parameter BASE_RAM_INIT_FILE = "F:\\HYXlearning\\cod\\rv-2023\\asmcode\\test.bin";
-  parameter BASE_RAM_INIT_FILE = "F:\\HYXlearning\\cod\\rv-2023\\supervisor-rv\\kernel\\kernel.bin"; // BaseRAM 初始化文件，请修改为实际的绝对路�?
+  parameter BASE_RAM_INIT_FILE = "F:\\HYXlearning\\cod\\rv-2023\\asmcode\\test.bin";
+  //parameter BASE_RAM_INIT_FILE = "F:\\HYXlearning\\cod\\rv-2023\\supervisor-rv\\kernel\\kernel.bin"; // BaseRAM 初始化文件，请修改为实际的绝对路�?
   parameter EXT_RAM_INIT_FILE = "/tmp/eram.bin";  // ExtRAM 初始化文件，请修改为实际的绝对路�?
   parameter FLASH_INIT_FILE = "/tmp/kernel.elf";  // Flash 初始化文件，请修改为实际的绝对路�?
 

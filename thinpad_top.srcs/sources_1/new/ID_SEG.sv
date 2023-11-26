@@ -16,7 +16,9 @@ module SEG_ID(
     input wire [31:0] b_in,
     output reg [31:0] a_out,
     output reg [31:0] b_out,
-    output reg [31:0] inst_out
+    output reg [31:0] inst_out,
+    input wire [3:0] if_error_code,
+    output reg [3:0] error_code
     );
 
 logic [31:0] instr;

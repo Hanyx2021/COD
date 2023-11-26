@@ -18,7 +18,10 @@ module REG_IDEXE(
     output reg if_stall_o,
     input wire stall_i,
     input wire bubble_i,
-    input wire pc_finish
+    input wire pc_finish,
+
+    input wire [3:0] id_error_code,
+    output wire [3:0] exe_error_code
 );
 
 reg [31:0] pc;
@@ -28,6 +31,7 @@ reg [31:0] b;
 reg [5:0] rs1;
 reg [5:0] rs2;
 reg [5:0] load_rd;
+reg [3:0] error_code;
 
 assign pc_out = pc;
 assign inst_out = instr;
@@ -35,6 +39,7 @@ assign a_out = a;
 assign b_out = b;
 assign idexe_rs1 = rs1;
 assign idexe_rs2 = rs2;
+assign exe_error_code = error_code;
 
 always_comb begin
   if (inst_in[6:0] != 7'b0110111 && inst_in[6:0] != 7'b0010111 && inst_in[6:0] != 7'b1101111) begin
@@ -69,6 +74,7 @@ always_ff @(posedge clk_i) begin
     instr <= '0;
     a <= '0;
     b <= '0;
+    error_code <= '0;
   end
   else if(stall_i || pc_finish) begin
   end
@@ -77,12 +83,14 @@ always_ff @(posedge clk_i) begin
     instr <= '0;
     a <= '0;
     b <= '0;
+    error_code <= '0;
   end
   else begin
     pc <= pc_in;
     instr <= inst_in;
     a <= a_in;
     b <= b_in;
+    error_code <= id_error_code;
   end
 end
 
