@@ -35,7 +35,7 @@ module register(
     reg a_reg;
     reg b_reg;
     integer i;
-    
+
     always_ff @ (posedge clk or posedge reset) begin
         if(reset) begin
             a_reg <= 'b0;
@@ -77,51 +77,8 @@ always_ff @ (posedge clk or posedge reset) begin
             data <= data_in;
         end
     end
-    assign data_out = data;
 end
+
+assign data_out = data;
 
 endmodule
-
-/*module csr_converter(
-    input wire [11:0] csrindex,
-    output reg [5:0] csrreg
-);
-
-always_comb begin
-    case(csrindex)
-        12'b0011_0000_0000:
-            begin
-                csrreg = 6'b100000;             // 32:mstatus
-            end
-        12'b0011_0000_0100:
-            begin
-                csrreg = 6'b100001;             // 33:mie
-            end
-        12'b0011_0000_0101:
-            begin
-                csrreg = 6'b100010;             // 34:mtvec
-            end
-        12'b0011_0100_0000:
-            begin
-                csrreg = 6'b100011;             // 35:mscratch
-            end
-        12'b0011_0100_0001:
-            begin
-                csrreg = 6'b100100;             // 36:mepc
-            end
-        12'b0011_0100_0010:
-            begin
-                csrreg = 6'b100101;             // 37:mcause
-            end
-        12'b0011_0100_0100:
-            begin
-                csrreg = 6'b100110;             // 38:mip
-            end
-        12'b0001_1000_0000:
-            begin
-                csrreg = 6'b100111;             // 39:satp
-            end
-    endcase
-end
-
-endmodule*/
