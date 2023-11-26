@@ -238,14 +238,26 @@ module thinpad_top (
     .data_out(satp_out)
   );
 
-  ALU u_alu(
-  .op(alu_op),
-  .rs1(alu_a),
-  .rs2(alu_b),
-  .rd(alu_y)
+  logic mode_we;
+  logic [1:0] mode_in;
+  logic [1:0] mode_out;
+
+  MODE_reg mode(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mode_we),
+    .data_in(mode_in),
+    .data_out(mode_out)
   );
 
-    /* ============ ALU  and  Register end =============*/
+  ALU u_alu(
+    .op(alu_op),
+    .rs1(alu_a),
+    .rs2(alu_b),
+    .rd(alu_y)
+  );
+
+  /* ============ ALU  and  Register end =============*/
 
 
   /* =========== Lab6 MUX begin =========== */
@@ -496,6 +508,7 @@ logic [31:0] pc_branch;
 logic pc_branch_o;
 logic pc_stall_i;
 logic pc_finish;
+logic [3:0] if_error_code;
 
   SEG_IF seg_if(
     .clk_i(sys_clk),
@@ -507,6 +520,7 @@ logic pc_finish;
     .branch_i(pc_branch_o),
     .stall_i(pc_stall_i),
     .pc_finish(pc_finish),
+    .error_code(if_error_code),
 
     .wbm0_adr_o(wbm0_adr_o),
     .wbm0_dat_o(wbm0_dat_o),
@@ -532,6 +546,8 @@ logic a_confict;
 logic b_confict;
 logic [31:0] a_in;
 logic [31:0] b_in;
+logic [3:0] ifid_error_code;
+logic [3:0] id_error_code;
 
   SEG_ID seg_id(
     .clk_i(sys_clk),
@@ -550,7 +566,9 @@ logic [31:0] b_in;
     .rf_raddr_a(raddr_a),
     .rf_raddr_b(raddr_b),
     .rf_rdata_a(rdata_a),
-    .rf_rdata_b(rdata_b)
+    .rf_rdata_b(rdata_b),
+    .if_error_code(ifid_error_code),
+    .error_code(id_error_code)
   );
   /* =========== Lab6 ID end ============== */
 
@@ -563,8 +581,11 @@ logic [31:0] alu_exemem_i;
 logic [31:0] b_exemem_i;
 logic [31:0] pc_exemem_i;
 logic [31:0] inst_exemem_i;
+logic [3:0] idexe_error_code;
 
   SEG_EXE seg_exe(
+    .clk_i(sys_clk),
+    .rst_i(sys_rst),
     .inst_in(inst_idexe_o),
     .pc_in(pc_idexe_o),
     .rdata_a(a_idexe_o),
@@ -602,7 +623,11 @@ logic [31:0] inst_exemem_i;
     .mip_out(mip_out),
     .satp_we(satp_we),
     .satp_in(satp_in),
-    .satp_out(satp_out)
+    .satp_out(satp_out),
+    .mode_we(mode_we),
+    .mode_in(mode_in),
+    .mode_out(mode_out),
+    .id_error_code(idexe_error_code)
   );
   /* =========== Lab6 EXE end ============== */
 
@@ -682,7 +707,9 @@ logic [31:0] inst_exemem_i;
     .inst_out(inst_ifid_o),
     .stall_i(ifid_stall),
     .bubble_i(ifid_bubble),
-    .pc_finish(pc_finish)
+    .pc_finish(pc_finish),
+    .if_error_code(if_error_code),
+    .id_error_code(ifid_error_code)
   );
 
   REG_IDEXE reg_idexe(
@@ -703,7 +730,9 @@ logic [31:0] inst_exemem_i;
     .if_stall_o(pc_stall),
     .stall_i(idexe_stall),
     .bubble_i(idexe_bubble),
-    .pc_finish(pc_finish)
+    .pc_finish(pc_finish),
+    .id_error_code(id_error_code),
+    .exe_error_code(idexe_error_code)
   );
 
   REG_EXEMEM reg_exemem(

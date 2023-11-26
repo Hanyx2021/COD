@@ -19,7 +19,8 @@ module SEG_IF(
     input  wire wbm0_ack_i,
     input  wire wbm0_err_i,
     input  wire wbm0_rty_i,
-    output reg wbm0_cyc_o
+    output reg wbm0_cyc_o,
+    output reg [3:0] error_code
 );
 
 logic [31:0] pc_next_reg;
