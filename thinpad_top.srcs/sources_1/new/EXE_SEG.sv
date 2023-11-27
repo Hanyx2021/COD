@@ -126,7 +126,7 @@ always_comb begin
             csr_in = mie_out;             // 33:mie
             mie_in = csr_out;
             mstatus_we = 1'b0;
-            mie_we = pc != csr_we;
+            mie_we = csr_we;
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
@@ -141,7 +141,7 @@ always_comb begin
             mtvec_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
-            mtvec_we = pc != csr_we;
+            mtvec_we = csr_we;
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
@@ -156,7 +156,7 @@ always_comb begin
             mstatus_we = 1'b0;
             mie_we = 1'b0;
             mtvec_we = 1'b0;
-            mscratch_we = pc != csr_we;
+            mscratch_we = csr_we;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
             mip_we = 1'b0;
@@ -171,7 +171,7 @@ always_comb begin
             mie_we = 1'b0;
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
-            mepc_we = pc != csr_we;
+            mepc_we = csr_we;
             mcause_we = 1'b0;
             mip_we = 1'b0;
             satp_we = 1'b0;
@@ -186,7 +186,7 @@ always_comb begin
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
-            mcause_we = pc != csr_we;
+            mcause_we = csr_we;
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
@@ -201,7 +201,7 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = pc != csr_we;
+            mip_we = csr_we;
             satp_we = 1'b0;
             mode_we = 1'b0;
           end
@@ -216,17 +216,12 @@ always_comb begin
             mepc_we = 1'b0;
             mcause_we = 1'b0;
             mip_we = 1'b0;
-            satp_we = pc != csr_we;
+            satp_we = csr_we;
             mode_we = 1'b0;
           end
         endcase
       end
       else if(instr == 32'b00110000001000000000000001110011) begin  // MRET
-        mode_in = mstatus_out[12:11];
-        mode_we = pc != old_pc ? 1'b1 : 1'b0;
-        mstatus_in = 2'b00;
-
-        mstatus_we = pc != old_pc ? 1'b1 : 1'b0;
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
@@ -234,6 +229,10 @@ always_comb begin
         mcause_we = 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
+        mstatus_we = 1'b0;
+
+        mode_in = mstatus_out[12:11];
+        mode_we = csr_we;
 
         pc_branch = mepc_out;
         branch_o = 1'b1;
@@ -244,11 +243,12 @@ always_comb begin
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
         mepc_we = 1'b0;
-        mcause_we = pc != old_pc ? 1'b1 : 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
 
-        mode_we = 1'b0;
+        mcause_we = csr_we;
+        mode_we = csr_we;
+        mode_in = 2'b11;
         case(mode_out)
           2'b00: mcause_in = 8;
           2'b01: mcause_in = 9;
@@ -264,13 +264,15 @@ always_comb begin
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
         mepc_we = 1'b0;
-        mcause_we = pc != old_pc ? 1'b1 : 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
-        mcause_in = 3;
-        mode_we = 1'b0;
 
-        pc_branch = {2'b00,mtvec_out[31:2]};
+        mcause_in = 3;
+        mcause_we = csr_we;
+        mode_we = csr_we;
+        mode_in = 2'b11;
+
+        pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
       end
     end
