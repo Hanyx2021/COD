@@ -242,18 +242,21 @@ always_comb begin
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
-        mepc_we = 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
 
         mcause_we = csr_we;
-        mode_we = csr_we;
-        mode_in = 2'b11;
         case(mode_out)
           2'b00: mcause_in = 8;
           2'b01: mcause_in = 9;
           2'b11: mcause_in = 11;
         endcase
+
+        mepc_we = csr_we;
+        mepc_in = pc;
+
+        mode_we = csr_we;
+        mode_in = 2'b11;
 
         pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
@@ -263,14 +266,17 @@ always_comb begin
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
-        mepc_we = 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
 
         mcause_in = 3;
         mcause_we = csr_we;
+
         mode_we = csr_we;
         mode_in = 2'b11;
+
+        mepc_we = csr_we;
+        mepc_in = pc;
 
         pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
