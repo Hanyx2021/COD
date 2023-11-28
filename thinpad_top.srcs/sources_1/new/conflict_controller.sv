@@ -24,6 +24,7 @@ always_comb begin
     end
     else begin
       conflict_rs1 = 1'b0;
+      rs1_out = 'b0;
     end
 
     if((exemem_rd != 0 && exemem_rd == idexe_rs2) || (memwb_rd != 0 && memwb_rd == idexe_rs2)) begin
@@ -37,6 +38,7 @@ always_comb begin
     end
     else begin
       conflict_rs2 = 1'b0;
+      rs2_out = 'b0;
     end
 end
 

@@ -12,17 +12,19 @@ module SEG_WB(
 logic [31:0] instr;
 
 always_comb begin
-instr = inst_in;
-if(instr[6:0] != 7'b1100011 && instr[6:0] != 7'b0100011)             // BEQ,BNE,SB,SW
-begin
-    rf_waddr = instr[11:7];
-    rf_wdata = data_in;
-    rf_we = 1'b1;
-end
-else
-begin
-    rf_we = 1'b0;
-end
+    instr = inst_in;
+    if(instr[6:0] != 7'b1100011 && instr[6:0] != 7'b0100011)             // BEQ,BNE,SB,SW
+    begin
+        rf_waddr = instr[11:7];
+        rf_wdata = data_in;
+        rf_we = 1'b1;
+    end
+    else
+    begin
+        rf_waddr = 'b0;
+        rf_wdata = 'b0;
+        rf_we = 1'b0;
+    end
 end
 
 endmodule

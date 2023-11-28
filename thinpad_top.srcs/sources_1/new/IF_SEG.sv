@@ -44,6 +44,7 @@ always_ff @(posedge clk_i)begin
 end
 
 always_comb begin
+    pc_finish = 1'b0;
     if(rst_i)begin
       nextstate = STATE_IDLE;
     end
