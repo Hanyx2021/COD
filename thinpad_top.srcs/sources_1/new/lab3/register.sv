@@ -32,14 +32,10 @@ module register(
     output reg[31:0] rdata_b
     );
     reg [31:0] data_reg [0:31];
-    reg a_reg;
-    reg b_reg;
     integer i;
 
     always_ff @ (posedge clk or posedge reset) begin
         if(reset) begin
-            a_reg <= 'b0;
-            b_reg <= 'b0;
             for(i = 0 ;i < 32;i++)begin
                 data_reg[i] <= 'b0;
             end

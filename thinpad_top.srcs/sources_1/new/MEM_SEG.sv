@@ -5,7 +5,7 @@ module SEG_MEM(
     input wire rst_i,
 
     input wire [31:0] inst_in,
-    input wire [31:0] pc_in,
+    (* DONT_TOUCH = "1" *) input wire [31:0] pc_in,
     input wire [31:0] alu_in,
     input wire [31:0] raddr_in,
     output reg [31:0] data_out,
@@ -20,8 +20,8 @@ module SEG_MEM(
     output reg [3:0] wbm1_sel_o,
     output reg wbm1_stb_o,
     input  wire wbm1_ack_i,
-    input  wire wbm1_err_i,
-    input  wire wbm1_rty_i,
+    (* DONT_TOUCH = "1" *) input  wire wbm1_err_i,
+    (* DONT_TOUCH = "1" *) input  wire wbm1_rty_i,
     output reg wbm1_cyc_o
     );
 
@@ -115,6 +115,9 @@ always_comb begin
       end
       STATE_DONE:begin
           nextstate = STATE_IDLE;
+      end
+      default:begin
+        nextstate = STATE_IDLE;
       end
    endcase
   end

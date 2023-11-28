@@ -523,7 +523,6 @@ logic [3:0] if_error_code;
     .error_code(if_error_code),
 
     .wbm0_adr_o(wbm0_adr_o),
-    .wbm0_dat_o(wbm0_dat_o),
     .wbm0_dat_i(wbm0_dat_i),
     .wbm0_we_o(wbm0_we_o),
     .wbm0_sel_o(wbm0_sel_o),

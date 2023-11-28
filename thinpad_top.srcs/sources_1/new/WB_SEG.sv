@@ -2,7 +2,7 @@
 
 module SEG_WB(
     input wire [31:0] data_in,
-    input wire [31:0] inst_in,
+    (* DONT_TOUCH = "1" *) input wire [31:0] inst_in,
 
     output reg  [5:0]  rf_waddr,
     output reg  [31:0] rf_wdata,
