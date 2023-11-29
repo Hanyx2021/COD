@@ -41,6 +41,7 @@ module ALU(
             4'b1000:rd = rs1 >> rs2[5:0];
             4'b1001:rd = rs1 >>> rs2[5:0];
             4'b1010:rd = (rs1 >> (32 - rs2[5:0])) | (rs1 << rs2[5:0]);
+            default:rd = 32'b0;
         endcase
     end
   

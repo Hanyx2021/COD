@@ -11,7 +11,6 @@ module SEG_IF(
     output reg pc_finish,
 
     output reg [31:0] wbm0_adr_o,
-    output reg [31:0] wbm0_dat_o,
     input  wire [31:0] wbm0_dat_i,
     output reg wbm0_we_o,
     output reg [3:0] wbm0_sel_o,
@@ -44,6 +43,7 @@ always_ff @(posedge clk_i)begin
 end
 
 always_comb begin
+    pc_finish = 1'b0;
     if(rst_i)begin
       nextstate = STATE_IDLE;
     end
@@ -66,6 +66,9 @@ always_comb begin
         else begin
           nextstate = STATE_READ;
         end
+      end
+      default: begin
+        nextstate = STATE_IDLE;
       end
    endcase
   end
