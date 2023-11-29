@@ -19,53 +19,6 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
-////////////////////////////////////////////////////////
-// 1. CPU -> PT: `va_i`                     (IDLE)
-//      req_i = 1 at the first posedge,
-//      req_type_i = {00,01,11},
-//      privilege_i = {00,01,11},
-//      pte_i = any,
-//      ack_o = 0,
-//      req_o = 0
-//
-// 2. PT -> CPU: I need `pte_addr_o`        (WAIT_PTE)
-//  if no page-fault:
-//      pa_o = any,
-//      ack_o = 0,
-//      pte_addr_o = <physical address of a PTE>,
-//      req_o = 1 at the first posedge
-//
-//  if page-fault:
-//      pa_o = any,
-//      ack_o = 1,
-//      pte_addr_o = any,
-//      req_o = 0,
-//      fault_o = 1,
-//
-// 3. CPU -> PT: Here's your PTE (pte_i)    (INIT, VALID, PM)
-//      req_i = 1,
-//      req_type_i = {00,01,11},
-//      privilege_i = {00,01,11},
-//      pte_i = <content of the requested PTE>,
-//      ack_o = 0,
-//      req_o = 0
-//
-// 4. PT -> CPU: I need another `pte_addr_o` (goto 2)
-// or
-// 5. PT -> CPU: This is the PA you needed  (DONE)
-//  if no page-fault:
-//      pa_o = <target PA>,
-//      ack_o = 1 at the first posedge,
-//      pte_addr_o = any,
-//      req_o = 0
-//
-//  if page-fault:
-//      same as 2
-//
-// TODO: How to handle exceptions?
-////////////////////////////////////////////////////////
-
 module PageTable(
     input wire clk,
     input wire rst,
@@ -186,12 +139,12 @@ module PageTable(
                     end
                     else if(i == 0) begin           // pointer at the last layer
                         pa_o = 32'd0;
-                        ack_o = 1;
+                        ack_o = 0;
                         pte_addr_o = 0;
                         pte_please_o = 0;
                         fault_code_o = {2'b11, req_type_i};
                         fault_o = 1;
-                        nextstate = STATE_IDLE;
+                        nextstate = STATE_DONE;
                     end
                     else begin
                         i = 0;
@@ -199,12 +152,22 @@ module PageTable(
                     end
                 end
 
+                STATE_DONE: begin
+                    pa_o = i ? {pte[31:22], va[21:12], va[11:0]} : {pte[31:22], pte[21:12], va[11:0]};
+                    ack_o = 1;
+                    pte_addr_o = 0;
+                    pte_please_o = 0;
+                    fault_code_o = 4'd0;
+                    fault_o = 0;
+                    nextstate = STATE_IDLE;
+                end
+
                 default: begin
                     pa_o = 32'd0;
                     ack_o = 0;
                     pte_addr_o = 0;
                     pte_please_o = 0;
-                    fault_code_o = 00;
+                    fault_code_o = 4'd0;
                     fault_o = 0;
                     nextstate = STATE_IDLE;
                 end
