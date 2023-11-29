@@ -35,16 +35,23 @@ always_comb begin
     case(instr_type)
         7'b0110111:                     // LUI
             begin
+                rs1 = 5'b0;
+                rs2 = 5'b0;
             end
         7'b0010111:                     // AUIPC
             begin
+                rs1 = 5'b0;
+                rs2 = 5'b0;
             end
         7'b1101111:                     // JAL
             begin
+                rs1 = 5'b0;
+                rs2 = 5'b0;
             end
         7'b1100111:                     // JALR
             begin
                 rs1 = instr[19:15];
+                rs2 = 5'b0;
             end
         7'b1100011:                     // BEQ,BNE
             begin
@@ -54,6 +61,7 @@ always_comb begin
         7'b0000011:                     // LB,LW
             begin
                 rs1 = instr[19:15];
+                rs2 = 5'b0;
             end
         7'b0100011:                     // SB,SW
             begin
@@ -63,6 +71,7 @@ always_comb begin
         7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI
             begin
                 rs1 = instr[19:15];
+                rs2 = 5'b0;
             end
         7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU
             begin
@@ -73,8 +82,17 @@ always_comb begin
             begin
               if (instr[14:12] != 3'b000) begin
                 rs1 = instr[19:15];
+                rs2 = 5'b0;
+              end
+              else begin
+                rs1 = 5'b0;
+                rs2 = 5'b0;
               end
             end
+        default: begin
+            rs1 = 5'b0;
+            rs2 = 5'b0;
+        end
     endcase
 end
 

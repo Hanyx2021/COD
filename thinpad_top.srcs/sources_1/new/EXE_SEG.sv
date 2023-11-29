@@ -19,31 +19,31 @@ module SEG_EXE(
     output reg [31:0] pc_branch,
     output reg mstatus_we,
     output reg [31:0] mstatus_in,
-    input wire [31:0] mstatus_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mstatus_out,
     output reg mie_we,
     output reg [31:0] mie_in,
-    input wire [31:0] mie_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mie_out,
     output reg mtvec_we,
     output reg [31:0] mtvec_in,
-    input wire [31:0] mtvec_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mtvec_out,
     output reg mscratch_we,
     output reg [31:0] mscratch_in,
-    input wire [31:0] mscratch_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mscratch_out,
     output reg mepc_we,
     output reg [31:0] mepc_in,
-    input wire [31:0] mepc_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mepc_out,
     output reg mcause_we,
     output reg [31:0] mcause_in,
-    input wire [31:0] mcause_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mcause_out,
     output reg mip_we,
     output reg [31:0] mip_in,
-    input wire [31:0] mip_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mip_out,
     output reg satp_we,
     output reg [31:0] satp_in,
-    input wire [31:0] satp_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] satp_out,
     output reg mode_we,
     output reg [1:0] mode_in,
-    input wire [1:0] mode_out,
+    (* DONT_TOUCH = "1" *) input wire [1:0] mode_out,
     input wire [3:0] id_error_code
     );
 
@@ -84,6 +84,32 @@ always_comb begin
     a_data_reg = rdata_a;
     b_data_reg = rdata_b;
     instr_type = instr[6:0];
+    addr_reg = 'b0;
+    alu_a = 'b0;
+    alu_b = 'b0;
+    alu_op = 'b0;
+    alu_reg = 'b0;
+    branch_o = 'b0;
+    pc_branch = 'b0;
+    mstatus_we = 'b0;
+    mstatus_in = 'b0;
+    mie_we = 'b0;
+    mie_in = 'b0;
+    mtvec_we = 'b0;
+    mtvec_in = 'b0;
+    mscratch_we = 'b0;
+    mscratch_in = 'b0;
+    mepc_we = 'b0;
+    mepc_in = 'b0;
+    mcause_we = 'b0;
+    mcause_in = 'b0;
+    mip_we = 'b0;
+    mip_in = 'b0;
+    satp_we = 'b0;
+    satp_in = 'b0;
+    mode_we = 'b0;
+    mode_in = 'b0;
+    csr_out = 'b0;
     if(instr_type != 7'b1100011) begin
       branch_o = 1'b0;
     end
@@ -219,6 +245,9 @@ always_comb begin
             satp_we = csr_we;
             mode_we = 1'b0;
           end
+          default:begin
+            csr_in = 'b0;
+          end
         endcase
       end
       else if(instr == 32'b00110000001000000000000001110011) begin  // MRET
@@ -236,6 +265,7 @@ always_comb begin
 
         pc_branch = mepc_out;
         branch_o = 1'b1;
+        csr_in = 'b0;
       end
       else if(instr == 32'b00000000000000000000000001110011) begin  // ECALL
         mstatus_we = 1'b0;
@@ -260,6 +290,7 @@ always_comb begin
 
         pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
+        csr_in = 'b0;
       end
       else if(instr == 32'b00000000000100000000000001110011) begin  // EBREAK
         mstatus_we = 1'b0;
@@ -280,6 +311,10 @@ always_comb begin
 
         pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
+        csr_in = 'b0;
+      end
+      else begin
+        csr_in = 'b0;
       end
     end
     else begin                           // No CSR registers
@@ -292,6 +327,7 @@ always_comb begin
       mip_we = 1'b0;
       satp_we = 1'b0;
       mode_we = 1'b0;
+      csr_in = 'b0;
     case(instr_type)
         7'b0110111:                     // LUI
             begin

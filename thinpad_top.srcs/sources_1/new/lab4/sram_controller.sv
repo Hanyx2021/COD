@@ -97,6 +97,9 @@ always_comb begin
     STATE_DONE:begin
       nextstate = STATE_IDLE;
     end
+    default:begin
+      nextstate = STATE_IDLE;
+    end
  endcase
 end
 end
