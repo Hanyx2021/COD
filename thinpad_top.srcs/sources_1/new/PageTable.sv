@@ -21,18 +21,50 @@
 
 
 ////////////////////////////////////////////////////////
-// 1. CPU -> PT: `req_i`, `va_i`
-// 2. PT -> CPU: I need `pte_addr_o`
-// 3. CPU -> PT: Here's your PTE (pte_i)
-// 4. PT -> CPU: I need another `pte_addr_o`
-// 5. CPU -> PT: Here's your PTE (pte_i)
-// 6. PT -> CPU: This is the `pa_o` you need
+// 1. CPU -> PT: `va_i`                     (IDLE)
+//      req_i = 1 at the first posedge,
+//      req_type_i = {00,01,11},
+//      privilege_i = {00,01,11},
+//      pte_i = any,
+//      ack_o = 0,
+//      req_o = 0
+//
+// 2. PT -> CPU: I need `pte_addr_o`        (WAIT_PTE)
+//  if no page-fault:
+//      pa_o = any,
+//      ack_o = 0,
+//      pte_addr_o = <physical address of a PTE>,
+//      req_o = 1 at the first posedge
+//
+//  if page-fault:
+//      pa_o = any,
+//      ack_o = 1,
+//      pte_addr_o = any,
+//      req_o = 0,
+//      fault_o = 1,
+//
+// 3. CPU -> PT: Here's your PTE (pte_i)    (INIT, VALID, PM)
+//      req_i = 1,
+//      req_type_i = {00,01,11},
+//      privilege_i = {00,01,11},
+//      pte_i = <content of the requested PTE>,
+//      ack_o = 0,
+//      req_o = 0
+//
+// 4. PT -> CPU: I need another `pte_addr_o` (goto 2)
+// or
+// 5. PT -> CPU: This is the PA you needed  (DONE)
+//  if no page-fault:
+//      pa_o = <target PA>,
+//      ack_o = 1 at the first posedge,
+//      pte_addr_o = any,
+//      req_o = 0
+//
+//  if page-fault:
+//      same as 2
 //
 // TODO: How to handle exceptions?
 ////////////////////////////////////////////////////////
-
-
-parameter PAGESIZE = 32;
 
 module PageTable(
     input wire clk,
@@ -46,37 +78,29 @@ module PageTable(
     output reg ack_o,               // ACK for a translation request
 
     output reg [31:0] pte_addr_o,   // SRAM address, used to read a PTE
-    output reg req_o,               // request for a PTE
-    input wire ack_i,               // ACK for a get-PTE request
-    input wire [31:0] pte_i,        // PTE from SRAM
-    output reg [3:0] sram_be_n,     // SRAM byte enable, ALWAYS set as '0000'
+    output reg pte_please_o,        // request for a PTE
+    input wire [31:0] pte_i,        // PTE from CPU, valid when `pte_ready_i` is '1'
+    input wire pte_ready_i,         // '1' means `pte_i` is valid
+
+    output reg [3:0] fault_code_o,  // the same in `exception.h`
+    output reg fault_o,             // '1' for fault, '0' for no fault
 
     input wire [31:0] satp_i,       // value of CSR register satp
-
-    output reg [31:0] mcause_val_o, // value to be written to mcause
-    output reg mcause_we,           // mcause write enable, '1' for write
     );
 
-    typedef enum logic [2:0] {
+    typedef enum logic [1:0] {
         STATE_IDLE = 0,
-        STATE_INIT = 1,
-        STATE_VALID = 2,
-        STATE_PM = 3,
-        STATE_DONE = 4
+        STATE_WAIT = 1,
+        STATE_CHECK = 2
     } state_t;
 
     state_t state;
     state_t nextstate;
 
-    reg [31:0] va_reg;
-    reg [31:0] base_addr;
     reg i;
-    reg [31:0] pte;
     logic u, x, w, r, v;
-    logic permission_fault;
-
-    assign sram_we_n = 1;
-    assign sram_be_n = 4'b0000;
+    logic access_fault;
+    logic permission_fault;     // reserved for PMA / PMP check
 
     always_ff @(posedge clk) begin
         if(rst) begin
@@ -96,6 +120,8 @@ module PageTable(
 
         mcause_val_o = {30'b11, req_type_i};
 
+        access_fault = 0;       // reserved for PMA / PMP check
+
         permission_fault = (privilege_i == 2'b00 && !u)     // no permission to U mode
                         || (req_type_i == 2'b00 && !x)      // no permission to execute
                         || (req_type_i == 2'b01 && !r)      // no permission to read
@@ -107,74 +133,79 @@ module PageTable(
             nextstate = STATE_IDLE;
         end
         else begin
-            case(state)
+            case(nextstate)
                 STATE_IDLE: begin
                     pa_o = 32'd0;
                     ack_o = 0;
-                    pte_addr_o = 0;
-                    sram_ce_n = 32'd0;
-                    sram_oe_n = 0;
-                    mcause_val_o = 32'd0;
-                    mcause_we = 1;
-                    va_reg = req_i ? va_i : va_reg;
-                    base_addr = satp_i[21:0] * PAGESIZE;    // satp_i.PPN * PAGESIZE
-                    i = 1;
-                    pte = 32'd0;
+                    pte_addr_o = 32'd0;
+                    pte_please_o = 0;
+                    fault_o = 0;
+                    fault_code_o = 4'd0;
                     nextstate = req_i ? STATE_INIT : STATE_IDLE;
                 end
 
-                STATE_INIT: begin
-                    req_o = 1;
-                    pte_addr_o = base_addr + (i ? va_i[31:22] : va_i[21:12]) * PAGESIZE;
-                    pte = ack_i ? pte_i : pte;
-                    nextstate = ack_i ? STATE_VALID : STATE_INIT;
+                STATE_WAIT: begin
+                    pa_o = 32'd0;
+                    ack_o = 0;
+                    pte_addr_o = i ? ((satp_i[21:0] << 5) + ((i ? va_i[31:22] : va_i[21:12]) << 2)) : ((satp_i[21:0] << 5) + (pte[19:10] << 2));
+                    pte_please_o = 1;
+                    fault_o = 0;
+                    fault_code_o = 4'd0;
+                    nextstate = pte_ready_i ? STATE_CHECK : STATE_WAIT;
                 end
 
-                STATE_VALID: begin
+                STATE_CHECK: begin
                     if(!v || ((!r) && w)) begin     // invalid PTE
-                        // TODO: raise page-fault exception corresponding to req_type_i
-                        nextstate = STATE_EXCEPTION;
+                        pa_o = 32'd0;
+                        ack_o = 1;
+                        pte_addr_o = 32'd0;
+                        pte_please_o = 0;
+                        fault_o = 1;
+                        fault_code_o = {2'b11, req_type_i};
+                        nextstate = STATE_IDLE;
                     end
                     else if(r && x) begin           // valid leaf PTE
-                        nextstate = STATE_PM;
+                        if(permission_fault || i && pte[19:10] == 10'd0) begin  // no permission or misaligned superpage
+                            pa_o = 32'd0;
+                            ack_o = 1;
+                            pte_addr_o = 32'd0;
+                            pte_please_o = 0;
+                            fault_code_o = {2'b11, req_type_i};
+                            fault_o = 1;
+                            nextstate = STATE_IDLE;
+                        end
+                        else begin
+                            pa_o = i ? {pte[31:22], va[21:12], va[11:0]} : {pte[31:22], pte[21:12], va[11:0]};
+                            ack_o = 1;
+                            pte_addr_o = 0;
+                            pte_please_o = 0;
+                            fault_code_o = 4'd0;
+                            fault_o = 0;
+                            nextstate = STATE_IDLE;
+                        end
                     end
                     else if(i == 0) begin           // pointer at the last layer
-                        // TODO: raise page-fault exception corresponding to req_type_i
-                        nextstate = STATE_EXCEPTION;
+                        pa_o = 32'd0;
+                        ack_o = 1;
+                        pte_addr_o = 0;
+                        pte_please_o = 0;
+                        fault_code_o = {2'b11, req_type_i};
+                        fault_o = 1;
+                        nextstate = STATE_IDLE;
                     end
                     else begin
                         i = 0;
-                        pte_addr_o = base_addr + pte[19:10] * PAGESIZE;
-                        nextstate = STATE_INIT;
+                        nextstate = STATE_WAIT;
                     end
                 end
 
-                STATE_PM: begin
-                    if(permission_fault) begin
-                        // TODO: raise page-fault exception corresponding to req_type_i
-                        nextstate = STATE_EXCEPTION;
-                    end
-                    else if(i && pte[19:10] == 10'd0) begin     // misaligned superpage
-                        // TODO: raise page-fault exception corresponding to req_type_i
-                        nextstate = STATE_EXCEPTION;
-                    end
-                    else begin
-                        nextstate = STATE_DONE;
-                    end
-                end
-
-                STATE_DONE: begin
-                    if(i) begin
-                        pa_o = {pte[31:22], va[21:12], va[11:0]};
-                    end
-                    else begin
-                        pa_o = {pte[31:22], pte[21:12], va[11:0]};
-                    end
-                    nextstate = STATE_IDLE;
-                end
-
-                STATE_EXCEPTION: begin
-                    mcause_we = 1;
+                default: begin
+                    pa_o = 32'd0;
+                    ack_o = 0;
+                    pte_addr_o = 0;
+                    pte_please_o = 0;
+                    fault_code_o = 00;
+                    fault_o = 0;
                     nextstate = STATE_IDLE;
                 end
             endcase
