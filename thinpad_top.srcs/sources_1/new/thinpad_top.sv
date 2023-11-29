@@ -4,51 +4,51 @@ module thinpad_top (
     input wire clk_50M,     // 50MHz 时钟输入
     input wire clk_11M0592, // 11.0592MHz 时钟输入（备用，可不用）
 
-    input wire push_btn,  // BTN5 按钮�???关，带消抖电路，按下时为 1
-    input wire reset_btn, // BTN6 复位按钮，带消抖电路，按下时�??? 1
+    input wire push_btn,  // BTN5 按钮�?????关，带消抖电路，按下时为 1
+    input wire reset_btn, // BTN6 复位按钮，带消抖电路，按下时�????? 1
 
     input  wire [ 3:0] touch_btn,  // BTN1~BTN4，按钮开关，按下时为 1
-    input  wire [31:0] dip_sw,     // 32 位拨码开关，拨到“ON”时�??? 1
-    output wire [15:0] leds,       // 16 �??? LED，输出时 1 点亮
+    input  wire [31:0] dip_sw,     // 32 位拨码开关，拨到“ON”时�????? 1
+    output wire [15:0] leds,       // 16 �????? LED，输出时 1 点亮
     output wire [ 7:0] dpy0,       // 数码管低位信号，包括小数点，输出 1 点亮
     output wire [ 7:0] dpy1,       // 数码管高位信号，包括小数点，输出 1 点亮
 
-    // CPLD 串口控制器信�???
-    output wire uart_rdn,        // 读串口信号，低有�???
-    output wire uart_wrn,        // 写串口信号，低有�???
-    input  wire uart_dataready,  // 串口数据准备�???
-    input  wire uart_tbre,       // 发�?�数据标�???
-    input  wire uart_tsre,       // 数据发�?�完毕标�???
+    // CPLD 串口控制器信�?????
+    output wire uart_rdn,        // 读串口信号，低有�?????
+    output wire uart_wrn,        // 写串口信号，低有�?????
+    input  wire uart_dataready,  // 串口数据准备�?????
+    input  wire uart_tbre,       // 发�?�数据标�?????
+    input  wire uart_tsre,       // 数据发�?�完毕标�?????
 
     // BaseRAM 信号
-    inout wire [31:0] base_ram_data,  // BaseRAM 数据，低 8 位与 CPLD 串口控制器共�???
+    inout wire [31:0] base_ram_data,  // BaseRAM 数据，低 8 位与 CPLD 串口控制器共�?????
     output wire [19:0] base_ram_addr,  // BaseRAM 地址
-    output wire [3:0] base_ram_be_n,  // BaseRAM 字节使能，低有效。如果不使用字节使能，请保持�??? 0
-    output wire base_ram_ce_n,  // BaseRAM 片�?�，低有�???
-    output wire base_ram_oe_n,  // BaseRAM 读使能，低有�???
-    output wire base_ram_we_n,  // BaseRAM 写使能，低有�???
+    output wire [3:0] base_ram_be_n,  // BaseRAM 字节使能，低有效。如果不使用字节使能，请保持�????? 0
+    output wire base_ram_ce_n,  // BaseRAM 片�?�，低有�?????
+    output wire base_ram_oe_n,  // BaseRAM 读使能，低有�?????
+    output wire base_ram_we_n,  // BaseRAM 写使能，低有�?????
 
     // ExtRAM 信号
     inout wire [31:0] ext_ram_data,  // ExtRAM 数据
     output wire [19:0] ext_ram_addr,  // ExtRAM 地址
-    output wire [3:0] ext_ram_be_n,  // ExtRAM 字节使能，低有效。如果不使用字节使能，请保持�??? 0
-    output wire ext_ram_ce_n,  // ExtRAM 片�?�，低有�???
-    output wire ext_ram_oe_n,  // ExtRAM 读使能，低有�???
-    output wire ext_ram_we_n,  // ExtRAM 写使能，低有�???
+    output wire [3:0] ext_ram_be_n,  // ExtRAM 字节使能，低有效。如果不使用字节使能，请保持�????? 0
+    output wire ext_ram_ce_n,  // ExtRAM 片�?�，低有�?????
+    output wire ext_ram_oe_n,  // ExtRAM 读使能，低有�?????
+    output wire ext_ram_we_n,  // ExtRAM 写使能，低有�?????
 
     // 直连串口信号
     output wire txd,  // 直连串口发�?�端
-    input  wire rxd,  // 直连串口接收�???
+    input  wire rxd,  // 直连串口接收�?????
 
     // Flash 存储器信号，参�?? JS28F640 芯片手册
-    output wire [22:0] flash_a,  // Flash 地址，a0 仅在 8bit 模式有效�???16bit 模式无意�???
+    output wire [22:0] flash_a,  // Flash 地址，a0 仅在 8bit 模式有效�?????16bit 模式无意�?????
     inout wire [15:0] flash_d,  // Flash 数据
     output wire flash_rp_n,  // Flash 复位信号，低有效
-    output wire flash_vpen,  // Flash 写保护信号，低电平时不能擦除、烧�???
-    output wire flash_ce_n,  // Flash 片�?�信号，低有�???
-    output wire flash_oe_n,  // Flash 读使能信号，低有�???
-    output wire flash_we_n,  // Flash 写使能信号，低有�???
-    output wire flash_byte_n, // Flash 8bit 模式选择，低有效。在使用 flash �??? 16 位模式时请设�??? 1
+    output wire flash_vpen,  // Flash 写保护信号，低电平时不能擦除、烧�?????
+    output wire flash_ce_n,  // Flash 片�?�信号，低有�?????
+    output wire flash_oe_n,  // Flash 读使能信号，低有�?????
+    output wire flash_we_n,  // Flash 写使能信号，低有�?????
+    output wire flash_byte_n, // Flash 8bit 模式选择，低有效。在使用 flash �????? 16 位模式时请设�????? 1
 
     // USB 控制器信号，参�?? SL811 芯片手册
     output wire sl811_a0,
@@ -71,13 +71,13 @@ module thinpad_top (
     input wire dm9k_int,
 
     // 图像输出信号
-    output wire [2:0] video_red,    // 红色像素�???3 �???
-    output wire [2:0] video_green,  // 绿色像素�???3 �???
-    output wire [1:0] video_blue,   // 蓝色像素�???2 �???
-    output wire       video_hsync,  // 行同步（水平同步）信�???
-    output wire       video_vsync,  // 场同步（垂直同步）信�???
+    output wire [2:0] video_red,    // 红色像素�?????3 �?????
+    output wire [2:0] video_green,  // 绿色像素�?????3 �?????
+    output wire [1:0] video_blue,   // 蓝色像素�?????2 �?????
+    output wire       video_hsync,  // 行同步（水平同步）信�?????
+    output wire       video_vsync,  // 场同步（垂直同步）信�?????
     output wire       video_clk,    // 像素时钟输出
-    output wire       video_de      // 行数据有效信号，用于区分消隐�???
+    output wire       video_de      // 行数据有效信号，用于区分消隐�?????
 );
 
   /* =========== Demo code begin =========== */
@@ -88,16 +88,16 @@ module thinpad_top (
       // Clock in ports
       .clk_in1(clk_50M),  // 外部时钟输入
       // Clock out ports
-      .clk_out1(clk_10M),  // 时钟输出 1，频率在 IP 配置界面中设�???
-      .clk_out2(clk_20M),  // 时钟输出 2，频率在 IP 配置界面中设�???
+      .clk_out1(clk_10M),  // 时钟输出 1，频率在 IP 配置界面中设�?????
+      .clk_out2(clk_20M),  // 时钟输出 2，频率在 IP 配置界面中设�?????
       // Status and control signals
       .reset(reset_btn),  // PLL 复位输入
-      .locked(locked)  // PLL 锁定指示输出�???"1"表示时钟稳定�???
+      .locked(locked)  // PLL 锁定指示输出�?????"1"表示时钟稳定�?????
                        // 后级电路复位信号应当由它生成（见下）
   );
 
   logic reset_of_clk10M;
-  // 异步复位，同步释放，�??? locked 信号转为后级电路的复�??? reset_of_clk10M
+  // 异步复位，同步释放，�????? locked 信号转为后级电路的复�????? reset_of_clk10M
   always_ff @(posedge clk_10M or negedge locked) begin
     if (~locked) reset_of_clk10M <= 1'b1;
     else reset_of_clk10M <= 1'b0;
@@ -127,15 +127,10 @@ module thinpad_top (
   logic [31:0]rdata_a;
   logic [5:0]raddr_b;
   logic [31:0]rdata_b;
-  logic [11:0]csrindex;
-  logic [5:0]csrreg;
-  logic [11:0]csrindex_2;
-  logic [5:0]csrreg_2;
-  logic [31:0]csr_wdata;
   logic rf_we;
   logic rf_we_csr;
 
-    register u_reg(
+  register u_reg(
     .clk(sys_clk),
     .reset(sys_rst),
     .waddr(rf_waddr),
@@ -144,30 +139,125 @@ module thinpad_top (
     .rdata_a(rdata_a),
     .raddr_b(raddr_b),
     .rdata_b(rdata_b),
-    .we(rf_we),
-    .waddr_csr(csrreg_2),
-    .wdata_csr(csr_wdata),
-    .we_csr(rf_we_csr)
-  );
-  
-  csr_converter csrconv_1(
-    .csrindex(csrindex),
-    .csrreg(csrreg)
+    .we(rf_we)
   );
 
-  csr_converter csrconv_2(
-    .csrindex(csrindex_2),
-    .csrreg(csrreg_2)
+  logic mstatus_we;
+  logic [31:0] mstatus_in;
+  logic [31:0] mstatus_out;
+
+  CSR_reg mstatus(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mstatus_we),
+    .data_in(mstatus_in),
+    .data_out(mstatus_out)
   );
 
-     ALU u_alu(
-      .op(alu_op),
-      .rs1(alu_a),
-      .rs2(alu_b),
-      .rd(alu_y)
-     );
+  logic mie_we;
+  logic [31:0] mie_in;
+  logic [31:0] mie_out;
 
-    /* ============ ALU  and  Register end =============*/
+  CSR_reg mie(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mie_we),
+    .data_in(mie_in),
+    .data_out(mie_out)
+  );
+
+  logic mtvec_we;
+  logic [31:0] mtvec_in;
+  logic [31:0] mtvec_out;
+
+  CSR_reg mtvec(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mtvec_we),
+    .data_in(mtvec_in),
+    .data_out(mtvec_out)
+  );
+
+  logic mscratch_we;
+  logic [31:0] mscratch_in;
+  logic [31:0] mscratch_out;
+
+  CSR_reg mscratch(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mscratch_we),
+    .data_in(mscratch_in),
+    .data_out(mscratch_out)
+  );
+
+  logic mepc_we;
+  logic [31:0] mepc_in;
+  logic [31:0] mepc_out;
+
+  CSR_reg mepc(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mepc_we),
+    .data_in(mepc_in),
+    .data_out(mepc_out)
+  );
+
+  logic mcause_we;
+  logic [31:0] mcause_in;
+  logic [31:0] mcause_out;
+
+  CSR_reg mcause(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mcause_we),
+    .data_in(mcause_in),
+    .data_out(mcause_out)
+  );
+
+  logic mip_we;
+  logic [31:0] mip_in;
+  logic [31:0] mip_out;
+
+  CSR_reg mip(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mip_we),
+    .data_in(mip_in),
+    .data_out(mip_out)
+  );
+
+  logic satp_we;
+  logic [31:0] satp_in;
+  logic [31:0] satp_out;
+
+  CSR_reg satp(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(satp_we),
+    .data_in(satp_in),
+    .data_out(satp_out)
+  );
+
+  logic mode_we;
+  logic [1:0] mode_in;
+  logic [1:0] mode_out;
+
+  MODE_reg mode(
+    .clk(sys_clk),
+    .reset(sys_rst),
+    .we(mode_we),
+    .data_in(mode_in),
+    .data_out(mode_out)
+  );
+
+  ALU u_alu(
+    .op(alu_op),
+    .rs1(alu_a),
+    .rs2(alu_b),
+    .rd(alu_y)
+  );
+
+  /* ============ ALU  and  Register end =============*/
 
 
   /* =========== Lab6 MUX begin =========== */
@@ -199,6 +289,15 @@ module thinpad_top (
   logic [3:0] wbs2_sel_o;
   logic wbs2_we_o;
 
+  logic wbs3_cyc_o;
+  logic wbs3_stb_o;
+  logic wbs3_ack_i;
+  logic [31:0] wbs3_adr_o;
+  logic [31:0] wbs3_dat_o;
+  logic [31:0] wbs3_dat_i;
+  logic [3:0] wbs3_sel_o;
+  logic wbs3_we_o;
+
   logic        arb_cyc_o;
   logic        arb_stb_o;
   logic        arb_ack_i;
@@ -208,7 +307,7 @@ module thinpad_top (
   logic [ 3:0] arb_sel_o;
   logic        arb_we_o;
 
-  wb_mux_3 wb_mux (
+  wb_mux_4 wb_mux (
       .clk(sys_clk),
       .rst(sys_rst),
 
@@ -270,7 +369,23 @@ module thinpad_top (
       .wbs2_ack_i(wbs2_ack_i),
       .wbs2_err_i('0),
       .wbs2_rty_i('0),
-      .wbs2_cyc_o(wbs2_cyc_o)
+      .wbs2_cyc_o(wbs2_cyc_o),
+
+      // Slave interface 3 (to mtime and mtimecmp)
+      // Address range: 0x0200_0000 ~ 0x0200_FFFF
+      .wbs3_addr    (32'h0200_0000),
+      .wbs3_addr_msk(32'hFFFF_0000),
+
+      .wbs3_adr_o(wbs3_adr_o),
+      .wbs3_dat_i(wbs3_dat_i),
+      .wbs3_dat_o(wbs3_dat_o),
+      .wbs3_we_o (wbs3_we_o),
+      .wbs3_sel_o(wbs3_sel_o),
+      .wbs3_stb_o(wbs3_stb_o),
+      .wbs3_ack_i(wbs3_ack_i),
+      .wbs3_err_i('0),
+      .wbs3_rty_i('0),
+      .wbs3_cyc_o(wbs3_cyc_o)
   );
 
   /* =========== Lab6 MUX end =========== */
@@ -409,6 +524,20 @@ module thinpad_top (
     .uart_rxd_i(rxd)
   );
 
+  mtime_controller mtime_controller (
+    .clk_i(sys_clk),
+    .rst_i(sys_rst),
+
+    .wb_cyc_i(wbs3_cyc_o),
+    .wb_stb_i(wbs3_stb_o),
+    .wb_ack_o(wbs3_ack_i),
+    .wb_adr_i(wbs3_adr_o),
+    .wb_dat_i(wbs3_dat_o),
+    .wb_dat_o(wbs3_dat_i),
+    .wb_sel_i(wbs3_sel_o),
+    .wb_we_i (wbs3_we_o)
+  );
+
   /* =========== Lab6 Slaves end =========== */
 
   /* =========== Lab6 IF ================== */
@@ -418,6 +547,7 @@ logic [31:0] pc_branch;
 logic pc_branch_o;
 logic pc_stall_i;
 logic pc_finish;
+logic [3:0] if_error_code;
 
   SEG_IF seg_if(
     .clk_i(sys_clk),
@@ -429,9 +559,9 @@ logic pc_finish;
     .branch_i(pc_branch_o),
     .stall_i(pc_stall_i),
     .pc_finish(pc_finish),
+    .error_code(if_error_code),
 
     .wbm0_adr_o(wbm0_adr_o),
-    .wbm0_dat_o(wbm0_dat_o),
     .wbm0_dat_i(wbm0_dat_i),
     .wbm0_we_o(wbm0_we_o),
     .wbm0_sel_o(wbm0_sel_o),
@@ -454,6 +584,8 @@ logic a_confict;
 logic b_confict;
 logic [31:0] a_in;
 logic [31:0] b_in;
+logic [3:0] ifid_error_code;
+logic [3:0] id_error_code;
 
   SEG_ID seg_id(
     .clk_i(sys_clk),
@@ -473,8 +605,8 @@ logic [31:0] b_in;
     .rf_raddr_b(raddr_b),
     .rf_rdata_a(rdata_a),
     .rf_rdata_b(rdata_b),
-    .csrindex(csrindex),
-    .csrreg(csrreg)
+    .if_error_code(ifid_error_code),
+    .error_code(id_error_code)
   );
   /* =========== Lab6 ID end ============== */
 
@@ -487,8 +619,11 @@ logic [31:0] alu_exemem_i;
 logic [31:0] b_exemem_i;
 logic [31:0] pc_exemem_i;
 logic [31:0] inst_exemem_i;
+logic [3:0] idexe_error_code;
 
   SEG_EXE seg_exe(
+    .clk_i(sys_clk),
+    .rst_i(sys_rst),
     .inst_in(inst_idexe_o),
     .pc_in(pc_idexe_o),
     .rdata_a(a_idexe_o),
@@ -503,9 +638,34 @@ logic [31:0] inst_exemem_i;
     .alu_a(alu_a),
     .alu_b(alu_b),
     .alu_y(alu_y),
-    .waddr_csr(csrindex_2),
-    .wdata_csr(csr_wdata),
-    .we_csr(rf_we_csr)
+    .mstatus_we(mstatus_we),
+    .mstatus_in(mstatus_in),
+    .mstatus_out(mstatus_out),
+    .mie_we(mie_we),
+    .mie_in(mie_in),
+    .mie_out(mie_out),
+    .mtvec_we(mtvec_we),
+    .mtvec_in(mtvec_in),
+    .mtvec_out(mtvec_out),
+    .mscratch_we(mscratch_we),
+    .mscratch_in(mscratch_in),
+    .mscratch_out(mscratch_out),
+    .mepc_we(mepc_we),
+    .mepc_in(mepc_in),
+    .mepc_out(mepc_out),
+    .mcause_we(mcause_we),
+    .mcause_in(mcause_in),
+    .mcause_out(mcause_out),
+    .mip_we(mip_we),
+    .mip_in(mip_in),
+    .mip_out(mip_out),
+    .satp_we(satp_we),
+    .satp_in(satp_in),
+    .satp_out(satp_out),
+    .mode_we(mode_we),
+    .mode_in(mode_in),
+    .mode_out(mode_out),
+    .id_error_code(idexe_error_code)
   );
   /* =========== Lab6 EXE end ============== */
 
@@ -585,7 +745,9 @@ logic [31:0] inst_exemem_i;
     .inst_out(inst_ifid_o),
     .stall_i(ifid_stall),
     .bubble_i(ifid_bubble),
-    .pc_finish(pc_finish)
+    .pc_finish(pc_finish),
+    .if_error_code(if_error_code),
+    .id_error_code(ifid_error_code)
   );
 
   REG_IDEXE reg_idexe(
@@ -606,7 +768,9 @@ logic [31:0] inst_exemem_i;
     .if_stall_o(pc_stall),
     .stall_i(idexe_stall),
     .bubble_i(idexe_bubble),
-    .pc_finish(pc_finish)
+    .pc_finish(pc_finish),
+    .id_error_code(id_error_code),
+    .exe_error_code(idexe_error_code)
   );
 
   REG_EXEMEM reg_exemem(

@@ -29,28 +29,14 @@ module register(
     input wire[5:0] raddr_a,
     output reg[31:0] rdata_a,
     input wire[5:0] raddr_b,
-    output reg[31:0] rdata_b,
-    input wire[5:0] waddr_csr,
-    input wire [31:0] wdata_csr,
-    input wire we_csr
+    output reg[31:0] rdata_b
     );
-    // 33:mie
-    // 34:mtvec
-    // 35:mscratch
-    // 36:mepc
-    // 37:mcause
-    // 38:mip
-    // 39:satp
-    reg [31:0] data_reg [0:39];
-    reg a_reg;
-    reg b_reg;
+    reg [31:0] data_reg [0:31];
     integer i;
-    
+
     always_ff @ (posedge clk or posedge reset) begin
         if(reset) begin
-            a_reg <= 'b0;
-            b_reg <= 'b0;
-            for(i = 0 ;i < 40;i++)begin 
+            for(i = 0 ;i < 32;i++)begin
                 data_reg[i] <= 'b0;
             end
         end
@@ -60,55 +46,62 @@ module register(
                     data_reg[waddr] <= wdata;
                 end
             end
-            if(we_csr) begin
-                data_reg[waddr_csr] <= wdata_csr;
-            end
         end
     end
     assign    rdata_a = data_reg[raddr_a];
     assign    rdata_b = data_reg[raddr_b];
 endmodule
 
-module csr_converter(
-    input wire [11:0] csrindex,
-    output reg [5:0] csrreg
+module CSR_reg(
+    input wire clk,
+    input wire reset,
+
+    input wire we,
+    input wire[31:0] data_in,
+    output reg[31:0] data_out
 );
 
-always_comb begin
-    case(csrindex)
-        12'b0011_0000_0000:
-            begin
-                csrreg = 6'b100000;             // 32:mstatus
-            end
-        12'b0011_0000_0100:
-            begin
-                csrreg = 6'b100001;             // 33:mie
-            end
-        12'b0011_0000_0101:
-            begin
-                csrreg = 6'b100010;             // 34:mtvec
-            end
-        12'b0011_0100_0000:
-            begin
-                csrreg = 6'b100011;             // 35:mscratch
-            end
-        12'b0011_0100_0001:
-            begin
-                csrreg = 6'b100100;             // 36:mepc
-            end
-        12'b0011_0100_0010:
-            begin
-                csrreg = 6'b100101;             // 37:mcause
-            end
-        12'b0011_0100_0100:
-            begin
-                csrreg = 6'b100110;             // 38:mip
-            end
-        12'b0001_1000_0000:
-            begin
-                csrreg = 6'b100111;             // 39:satp
-            end
-    endcase
+reg [31:0] data;
+
+always_ff @ (posedge clk or posedge reset) begin
+
+    if(reset) begin
+        data <= 32'b0;
+    end
+    else begin
+        if(we) begin
+            data <= data_in;
+        end
+    end
 end
+
+assign data_out = data;
+
+endmodule
+
+module MODE_reg(
+    input wire clk,
+    input wire reset,
+
+    input wire we,
+    input wire[1:0] data_in,
+    output reg[1:0] data_out
+);
+
+reg [1:0] data;
+
+always_ff @ (posedge clk or posedge reset) begin
+
+    if(reset) begin
+        data <= 2'b11;
+    end
+    else begin
+        if(we) begin
+            data <= data_in;
+        end
+    end
+end
+
+assign data_out = data;
 
 endmodule
