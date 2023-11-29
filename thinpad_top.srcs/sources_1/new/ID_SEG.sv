@@ -112,6 +112,7 @@ always_ff @(posedge clk_i) begin
         a_data_reg <= rf_rdata_a;
         b_data_reg <= rf_rdata_b;
       end
+    end
   end
   else begin
     a_data_reg <= '0;
