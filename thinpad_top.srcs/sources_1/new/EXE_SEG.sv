@@ -376,7 +376,7 @@ always_comb begin
               end
           7'b1100111:                     // JALR
               begin
-                if (instr[21] = 1'b0) begin
+                if (instr[21] == 1'b0) begin
                   alu_reg = pc + 4;
                   alu_a = a_data_reg;
                   alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
