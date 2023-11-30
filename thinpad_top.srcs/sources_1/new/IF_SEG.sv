@@ -81,6 +81,7 @@ always_ff @(posedge clk_i) begin
     wbm0_stb_o <= 1'b0;
     pc_now_reg <= 'h7fff_fffc;
     pc_next_reg <= 'h8000_0000;
+    error_code <= 'h0;
   end
   else begin
       if(!stall_i) begin

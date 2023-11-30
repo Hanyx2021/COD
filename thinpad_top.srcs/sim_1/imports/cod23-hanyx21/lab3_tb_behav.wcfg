@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="3880000001fs"></ZoomEndTime>
-      <Cursor1Time time="25610000fs"></Cursor1Time>
+      <ZoomStartTime time="827026fs"></ZoomStartTime>
+      <ZoomEndTime time="5257027fs"></ZoomEndTime>
+      <Cursor1Time time="2150000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="154"></NameColumnWidth>
-      <ValueColumnWidth column_width="72"></ValueColumnWidth>
+      <NameColumnWidth column_width="130"></NameColumnWidth>
+      <ValueColumnWidth column_width="440"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="20" />
+   <WVObjectSize size="23" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -27,6 +27,34 @@
    <wvobject fp_name="/tb/dut/seg_if/rst_i" type="logic">
       <obj_property name="ElementShortName">rst_i</obj_property>
       <obj_property name="ObjectShortName">rst_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_if/branch_i" type="logic">
+      <obj_property name="ElementShortName">branch_i</obj_property>
+      <obj_property name="ObjectShortName">branch_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_if/pc_next_reg" type="array">
+      <obj_property name="ElementShortName">pc_next_reg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_next_reg[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_if/error_code" type="array">
+      <obj_property name="ElementShortName">error_code[3:0]</obj_property>
+      <obj_property name="ObjectShortName">error_code[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_exe/id_error_code" type="array">
+      <obj_property name="ElementShortName">id_error_code[3:0]</obj_property>
+      <obj_property name="ObjectShortName">id_error_code[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_id/error_code" type="array">
+      <obj_property name="ElementShortName">error_code[3:0]</obj_property>
+      <obj_property name="ObjectShortName">error_code[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_id/instr" type="array">
+      <obj_property name="ElementShortName">instr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">instr[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_id/instr_type" type="array">
+      <obj_property name="ElementShortName">instr_type[6:0]</obj_property>
+      <obj_property name="ObjectShortName">instr_type[6:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/reg_ifid/pc_in" type="array">
       <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
@@ -59,22 +87,6 @@
    <wvobject fp_name="/tb/dut/mscratch/data" type="array">
       <obj_property name="ElementShortName">data[31:0]</obj_property>
       <obj_property name="ObjectShortName">data[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/idexe_rs1" type="array">
-      <obj_property name="ElementShortName">idexe_rs1[5:0]</obj_property>
-      <obj_property name="ObjectShortName">idexe_rs1[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/idexe_rs2" type="array">
-      <obj_property name="ElementShortName">idexe_rs2[5:0]</obj_property>
-      <obj_property name="ObjectShortName">idexe_rs2[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/exemem_rd" type="array">
-      <obj_property name="ElementShortName">exemem_rd[5:0]</obj_property>
-      <obj_property name="ObjectShortName">exemem_rd[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/memwb_rd" type="array">
-      <obj_property name="ElementShortName">memwb_rd[5:0]</obj_property>
-      <obj_property name="ObjectShortName">memwb_rd[5:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/confict/conflict_rs1" type="logic">
       <obj_property name="ElementShortName">conflict_rs1</obj_property>
