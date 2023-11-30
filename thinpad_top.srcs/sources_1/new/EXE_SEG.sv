@@ -114,7 +114,7 @@ always_comb begin
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
-  if(timeout_i) begin        // timeout
+  /*if(timeout_i) begin        // timeout
     /*mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
@@ -136,9 +136,9 @@ always_comb begin
     else
       pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
     branch_o = 1'b1;
-    csr_in = 'b0;*/
-  end
-  else if (id_error_code == 4'b0000) begin
+    csr_in = 'b0;
+  end*/
+  if (id_error_code == 4'b0000) begin
     if(instr_type == 7'b1110011)begin
       if(instr[14:12] == 3'b011 || instr[14:12] == 3'b010 || instr[14:12] == 3'b001) begin
         case(instr[14:12])
