@@ -14,7 +14,11 @@ module mtime_controller #(
     input wire [DATA_WIDTH-1:0] wb_dat_i,
     output reg [DATA_WIDTH-1:0] wb_dat_o,
     input wire [DATA_WIDTH/8-1:0] wb_sel_i,
-    input wire wb_we_i                                   // 0 read;1 write
+    input wire wb_we_i,                                   // 0 read;1 write
+    output reg timeout_o,
+    input wire timeout_clear,
+    input wire pc_finish,
+    input wire stall_i
 );
 
 typedef enum logic [1:0] {
@@ -30,6 +34,9 @@ reg [DATA_WIDTH-1:0] mtime_l;
 reg [DATA_WIDTH-1:0] mtime_h;
 reg [DATA_WIDTH-1:0] mtimecmp_l;
 reg [DATA_WIDTH-1:0] mtimecmp_h;
+logic timeout;
+
+assign timeout_o = timeout;
 
 always_ff @(posedge clk_i)begin
   if(rst_i)begin
@@ -38,6 +45,32 @@ always_ff @(posedge clk_i)begin
   else begin
     state <= nextstate;
   end
+end
+
+
+always_comb begin
+  if(rst_i)begin
+    timeout = '0;
+  end
+  else if(mtimecmp_h == '0 && mtimecmp_l == '0) begin
+    timeout = '0;
+  end
+  else begin
+    if(mtime_h > mtimecmp_h) begin
+      timeout = '1;
+    end
+    else if(mtime_h == mtimecmp_h) begin
+      if(mtime_l >= mtimecmp_l) begin
+        timeout = '1;
+      end
+      else begin
+        timeout = '0;
+      end
+    end
+    else begin
+      timeout = '0;
+    end
+end
 end
 
 always_comb begin
@@ -65,7 +98,7 @@ end
 end
 
 always_ff @(posedge clk_i)begin
-  if(rst_i)begin
+  if(rst_i || timeout_clear)begin
     wb_ack_o <= 1'b0;
     mtime_l <= 32'b0;
     mtime_h <= 32'b0;
@@ -75,6 +108,12 @@ always_ff @(posedge clk_i)begin
   else begin
     case(state)
       STATE_IDLE:begin
+        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i) begin
+          if(mtime_l == 'hFFFF_FFFF) begin
+            mtime_h <= mtime_h + 1;
+          end
+          mtime_l <= mtime_l + 1;
+        end
       end
       STATE_READ_AND_WRITE:begin
         if(wb_we_i) begin

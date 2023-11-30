@@ -27,11 +27,13 @@ logic [6:0] instr_type;
 logic [5:0] rs1, rs2;
 logic [31:0] a_data_reg;
 logic [31:0] b_data_reg;
+logic [3:0] error;
 
 always_comb begin
     pc = pc_in;
     instr = inst_in;
     instr_type = instr[6:0];
+    error = 4'h0;
     case(instr_type)
         7'b0110111:                     // LUI
             begin
@@ -78,7 +80,7 @@ always_comb begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
             end
-        7'b1110011:                    // CSRRC,CSRRS,CSRRW
+        7'b1110011:                    // CSRRC,CSRRS,CSRRW,ECALL,EBREAK,MRET
             begin
               if (instr[14:12] != 3'b000) begin
                 rs1 = instr[19:15];
@@ -92,16 +94,29 @@ always_comb begin
         default: begin
             rs1 = 5'b0;
             rs2 = 5'b0;
+            error = 4'h2;
         end
     endcase
 end
 
 always_ff @(posedge clk_i) begin
   if(pc) begin
-    a_data_reg <= rf_rdata_a;
-    b_data_reg <= rf_rdata_b;
+    if (if_error_code != 4'h0) begin
+      error_code <= if_error_code;
+    end
+    else begin
+      if (error != 4'h0) begin
+        error_code <= error;
+      end
+      else begin
+        error_code <= 'h0;
+        a_data_reg <= rf_rdata_a;
+        b_data_reg <= rf_rdata_b;
+      end
+    end
   end
   else begin
+    error_code <= 'h0;
     a_data_reg <= '0;
     b_data_reg <= '0;
   end

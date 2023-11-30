@@ -247,7 +247,9 @@ module thinpad_top (
     .reset(sys_rst),
     .we(mode_we),
     .data_in(mode_in),
-    .data_out(mode_out)
+    .data_out(mode_out),
+    .stall_i(idexe_stall),
+    .pc_finish(pc_finish)
   );
 
   ALU u_alu(
@@ -410,6 +412,9 @@ module thinpad_top (
   logic [ 3:0] wbm1_sel_o;
   logic        wbm1_we_o;
 
+  logic timeout;
+  logic timeout_clear;
+
   wb_arbiter_2 arbiter(
       .clk(sys_clk),
       .rst(sys_rst),
@@ -535,7 +540,11 @@ module thinpad_top (
     .wb_dat_i(wbs3_dat_o),
     .wb_dat_o(wbs3_dat_i),
     .wb_sel_i(wbs3_sel_o),
-    .wb_we_i (wbs3_we_o)
+    .wb_we_i (wbs3_we_o),
+    .timeout_o(timeout),
+    .timeout_clear(timeout_clear),
+    .stall_i(idexe_stall),
+    .pc_finish(pc_finish)
   );
 
   /* =========== Lab6 Slaves end =========== */
@@ -620,6 +629,7 @@ logic [31:0] b_exemem_i;
 logic [31:0] pc_exemem_i;
 logic [31:0] inst_exemem_i;
 logic [3:0] idexe_error_code;
+logic timeout_exe;
 
   SEG_EXE seg_exe(
     .clk_i(sys_clk),
@@ -665,7 +675,9 @@ logic [3:0] idexe_error_code;
     .mode_we(mode_we),
     .mode_in(mode_in),
     .mode_out(mode_out),
-    .id_error_code(idexe_error_code)
+    .id_error_code(idexe_error_code),
+    .timeout_i(timeout),
+    .timeout_clear(timeout_exe)
   );
   /* =========== Lab6 EXE end ============== */
 
@@ -747,7 +759,9 @@ logic [3:0] idexe_error_code;
     .bubble_i(ifid_bubble),
     .pc_finish(pc_finish),
     .if_error_code(if_error_code),
-    .id_error_code(ifid_error_code)
+    .id_error_code(ifid_error_code),
+    .timeout_clear_i(timeout_exe),
+    .timeout_clear_o(timeout_clear)
   );
 
   REG_IDEXE reg_idexe(
