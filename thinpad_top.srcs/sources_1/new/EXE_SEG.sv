@@ -560,6 +560,7 @@ always_comb begin
     end
   end else // id_error_code != 4'b0000
   begin 
+    
     mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;

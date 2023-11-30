@@ -109,12 +109,14 @@ always_ff @(posedge clk_i) begin
         error_code <= error;
       end
       else begin
+        error_code <= 'h0;
         a_data_reg <= rf_rdata_a;
         b_data_reg <= rf_rdata_b;
       end
     end
   end
   else begin
+    error_code <= 'h0;
     a_data_reg <= '0;
     b_data_reg <= '0;
   end
