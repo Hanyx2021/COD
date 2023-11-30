@@ -114,9 +114,31 @@ always_comb begin
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
+  if(timeout_i) begin        // timeout
+    mstatus_we = 1'b0;
+    mie_we = 1'b0;
+    mtvec_we = 1'b0;
+    mscratch_we = 1'b0;
+    mip_we = 1'b0;
+    satp_we = 1'b0;
 
-  if (id_error_code == 4'b0000) begin
+    mcause_we = 1;
+    mcause_in = {1'b1,31'b0111};
 
+    mepc_we = 1;
+    mepc_in = pc;
+
+    mode_we = 1;
+    mode_in = 2'b11;
+
+    if(mtvec_out[0] == '0)
+      pc_branch = {mtvec_out[31:2],2'b00};
+    else
+      pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
+    branch_o = 1'b1;
+    csr_in = 'b0;
+  end
+  else if (id_error_code == 4'b0000) begin
     if(instr_type == 7'b1110011)begin
       if(instr[14:12] == 3'b011 || instr[14:12] == 3'b010 || instr[14:12] == 3'b001) begin
         case(instr[14:12])
@@ -558,9 +580,9 @@ always_comb begin
               end
           endcase
     end
-  end else // id_error_code != 4'b0000
-  begin 
-    
+  end 
+  else // id_error_code != 4'b0000
+  begin
     mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;

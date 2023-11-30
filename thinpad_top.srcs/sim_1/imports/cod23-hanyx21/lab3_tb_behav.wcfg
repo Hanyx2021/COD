@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="3000000001fs"></ZoomEndTime>
-      <Cursor1Time time="2510000fs"></Cursor1Time>
+      <ZoomStartTime time="80400000fs"></ZoomStartTime>
+      <ZoomEndTime time="82905001fs"></ZoomEndTime>
+      <Cursor1Time time="81210000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="149"></NameColumnWidth>
-      <ValueColumnWidth column_width="72"></ValueColumnWidth>
+      <NameColumnWidth column_width="214"></NameColumnWidth>
+      <ValueColumnWidth column_width="223"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="11" />
+   <WVObjectSize size="14" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -31,30 +31,6 @@
    <wvobject fp_name="/tb/dut/seg_if/branch_i" type="logic">
       <obj_property name="ElementShortName">branch_i</obj_property>
       <obj_property name="ObjectShortName">branch_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_if/pc_next_reg" type="array">
-      <obj_property name="ElementShortName">pc_next_reg[31:0]</obj_property>
-      <obj_property name="ObjectShortName">pc_next_reg[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_if/error_code" type="array">
-      <obj_property name="ElementShortName">error_code[3:0]</obj_property>
-      <obj_property name="ObjectShortName">error_code[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_exe/id_error_code" type="array">
-      <obj_property name="ElementShortName">id_error_code[3:0]</obj_property>
-      <obj_property name="ObjectShortName">id_error_code[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_id/error_code" type="array">
-      <obj_property name="ElementShortName">error_code[3:0]</obj_property>
-      <obj_property name="ObjectShortName">error_code[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_id/instr" type="array">
-      <obj_property name="ElementShortName">instr[31:0]</obj_property>
-      <obj_property name="ObjectShortName">instr[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_id/instr_type" type="array">
-      <obj_property name="ElementShortName">instr_type[6:0]</obj_property>
-      <obj_property name="ObjectShortName">instr_type[6:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/reg_ifid/pc_in" type="array">
       <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
@@ -91,5 +67,13 @@
    <wvobject fp_name="/tb/dut/mtime_controller/mtimecmp_h" type="array">
       <obj_property name="ElementShortName">mtimecmp_h[31:0]</obj_property>
       <obj_property name="ObjectShortName">mtimecmp_h[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_exe/branch_o" type="logic">
+      <obj_property name="ElementShortName">branch_o</obj_property>
+      <obj_property name="ObjectShortName">branch_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_exe/pc_branch" type="array">
+      <obj_property name="ElementShortName">pc_branch[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_branch[31:0]</obj_property>
    </wvobject>
 </wave_config>

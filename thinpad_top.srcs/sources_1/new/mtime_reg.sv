@@ -44,9 +44,12 @@ always_ff @(posedge clk_i)begin
   end
 end
 
+
 always_comb begin
   if(rst_i)begin
-    nextstate = STATE_IDLE;
+    timeout = '0;
+  end
+  else if(mtimecmp_h == '0 && mtimecmp_l == '0) begin
     timeout = '0;
   end
   else begin
@@ -64,6 +67,14 @@ always_comb begin
     else begin
       timeout = '0;
     end
+end
+end
+
+always_comb begin
+  if(rst_i)begin
+    nextstate = STATE_IDLE;
+  end
+  else begin
   case(state)
     STATE_IDLE:begin
       if(wb_stb_i && wb_cyc_i)begin
