@@ -45,7 +45,8 @@ module SEG_EXE(
   output reg [1:0] mode_in,
   (* DONT_TOUCH = "1" *) input wire [1:0] mode_out,
   input wire [3:0] id_error_code,
-  input wire timeout_i
+  input wire timeout_i,
+  output reg timeout_clear
   );
 
 logic [31:0] instr;
@@ -114,31 +115,33 @@ always_comb begin
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
-  /*if(timeout_i) begin        // timeout
-    /*mstatus_we = 1'b0;
+  if(timeout_i && pc != 32'b0) begin        // timeout
+    timeout_clear = 1'b1;
+    mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
     mip_we = 1'b0;
     satp_we = 1'b0;
 
-    mcause_we = 1;
+    mcause_we = csr_we;
     mcause_in = {1'b1,31'b0111};
 
-    mepc_we = 1;
+    mepc_we = csr_we;
     mepc_in = pc;
 
-    mode_we = 1;
+    mode_we = csr_we;
     mode_in = 2'b11;
 
-    if(mtvec_out[0] == '0)
+    if(mtvec_out[0] == 'b0)
       pc_branch = {mtvec_out[31:2],2'b00};
     else
       pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
     branch_o = 1'b1;
     csr_in = 'b0;
-  end*/
-  if (id_error_code == 4'b0000) begin
+  end
+  else if (id_error_code == 4'b0000) begin
+    timeout_clear = 1'b0;
     if(instr_type == 7'b1110011)begin
       if(instr[14:12] == 3'b011 || instr[14:12] == 3'b010 || instr[14:12] == 3'b001) begin
         case(instr[14:12])
@@ -382,13 +385,13 @@ always_comb begin
                   mip_we = 1'b0;
                   satp_we = 1'b0;
 
-                  mcause_we = 1;
+                  mcause_we = csr_we;
                   mcause_in = 4'h0;
 
-                  mepc_we = 1;
+                  mepc_we = csr_we;
                   mepc_in = pc;
 
-                  mode_we = 1;
+                  mode_we = csr_we;
                   mode_in = 2'b11;
 
                   pc_branch = {mtvec_out[31:2],2'b00};
@@ -415,13 +418,13 @@ always_comb begin
                   mip_we = 1'b0;
                   satp_we = 1'b0;
 
-                  mcause_we = 1;
+                  mcause_we = csr_we;
                   mcause_in = 4'h0;
 
-                  mepc_we = 1;
+                  mepc_we = csr_we;
                   mepc_in = pc;
 
-                  mode_we = 1;
+                  mode_we = csr_we;
                   mode_in = 2'b11;
 
                   pc_branch = {mtvec_out[31:2],2'b00};
@@ -583,6 +586,7 @@ always_comb begin
   end 
   else // id_error_code != 4'b0000
   begin
+    timeout_clear = 1'b0;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
@@ -590,13 +594,13 @@ always_comb begin
     mip_we = 1'b0;
     satp_we = 1'b0;
 
-    mcause_we = 1;
+    mcause_we = csr_we;
     mcause_in = id_error_code;
 
-    mepc_we = 1;
+    mepc_we = csr_we;
     mepc_in = pc;
 
-    mode_we = 1;
+    mode_we = csr_we;
     mode_in = 2'b11;
 
     pc_branch = {mtvec_out[31:2],2'b00};

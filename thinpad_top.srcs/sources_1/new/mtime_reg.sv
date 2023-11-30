@@ -15,7 +15,8 @@ module mtime_controller #(
     output reg [DATA_WIDTH-1:0] wb_dat_o,
     input wire [DATA_WIDTH/8-1:0] wb_sel_i,
     input wire wb_we_i,                                   // 0 read;1 write
-    output reg timeout_o
+    output reg timeout_o,
+    input wire timeout_clear
 );
 
 typedef enum logic [1:0] {
@@ -95,7 +96,7 @@ end
 end
 
 always_ff @(posedge clk_i)begin
-  if(rst_i)begin
+  if(rst_i || timeout_clear)begin
     wb_ack_o <= 1'b0;
     mtime_l <= 32'b0;
     mtime_h <= 32'b0;

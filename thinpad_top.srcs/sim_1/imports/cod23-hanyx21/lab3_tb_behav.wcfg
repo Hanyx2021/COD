@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="80400000fs"></ZoomStartTime>
-      <ZoomEndTime time="82905001fs"></ZoomEndTime>
-      <Cursor1Time time="81210000fs"></Cursor1Time>
+      <ZoomStartTime time="82270000fs"></ZoomStartTime>
+      <ZoomEndTime time="84240001fs"></ZoomEndTime>
+      <Cursor1Time time="82610000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="214"></NameColumnWidth>
-      <ValueColumnWidth column_width="223"></ValueColumnWidth>
+      <ValueColumnWidth column_width="213"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="14" />
+   <WVObjectSize size="11" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -27,10 +27,6 @@
    <wvobject fp_name="/tb/dut/seg_if/rst_i" type="logic">
       <obj_property name="ElementShortName">rst_i</obj_property>
       <obj_property name="ObjectShortName">rst_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_if/branch_i" type="logic">
-      <obj_property name="ElementShortName">branch_i</obj_property>
-      <obj_property name="ObjectShortName">branch_i</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/reg_ifid/pc_in" type="array">
       <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
@@ -48,25 +44,9 @@
       <obj_property name="ElementShortName">data_reg[0:31][31:0]</obj_property>
       <obj_property name="ObjectShortName">data_reg[0:31][31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/mtime_controller/timeout" type="logic">
-      <obj_property name="ElementShortName">timeout</obj_property>
-      <obj_property name="ObjectShortName">timeout</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/mtime_controller/mtime_l" type="array">
-      <obj_property name="ElementShortName">mtime_l[31:0]</obj_property>
-      <obj_property name="ObjectShortName">mtime_l[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/mtime_controller/mtime_h" type="array">
-      <obj_property name="ElementShortName">mtime_h[31:0]</obj_property>
-      <obj_property name="ObjectShortName">mtime_h[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/mtime_controller/mtimecmp_l" type="array">
-      <obj_property name="ElementShortName">mtimecmp_l[31:0]</obj_property>
-      <obj_property name="ObjectShortName">mtimecmp_l[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/mtime_controller/mtimecmp_h" type="array">
-      <obj_property name="ElementShortName">mtimecmp_h[31:0]</obj_property>
-      <obj_property name="ObjectShortName">mtimecmp_h[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/mode/data" type="array">
+      <obj_property name="ElementShortName">data[1:0]</obj_property>
+      <obj_property name="ObjectShortName">data[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/seg_exe/branch_o" type="logic">
       <obj_property name="ElementShortName">branch_o</obj_property>
@@ -75,5 +55,13 @@
    <wvobject fp_name="/tb/dut/seg_exe/pc_branch" type="array">
       <obj_property name="ElementShortName">pc_branch[31:0]</obj_property>
       <obj_property name="ObjectShortName">pc_branch[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/mtime_controller/timeout_clear" type="logic">
+      <obj_property name="ElementShortName">timeout_clear</obj_property>
+      <obj_property name="ObjectShortName">timeout_clear</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/mtime_controller/timeout" type="logic">
+      <obj_property name="ElementShortName">timeout</obj_property>
+      <obj_property name="ObjectShortName">timeout</obj_property>
    </wvobject>
 </wave_config>
