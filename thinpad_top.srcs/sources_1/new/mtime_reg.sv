@@ -16,7 +16,9 @@ module mtime_controller #(
     input wire [DATA_WIDTH/8-1:0] wb_sel_i,
     input wire wb_we_i,                                   // 0 read;1 write
     output reg timeout_o,
-    input wire timeout_clear
+    input wire timeout_clear,
+    input wire pc_finish,
+    input wire stall_i
 );
 
 typedef enum logic [1:0] {
@@ -106,7 +108,7 @@ always_ff @(posedge clk_i)begin
   else begin
     case(state)
       STATE_IDLE:begin
-        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0)) begin
+        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i) begin
           if(mtime_l == 'hFFFF_FFFF) begin
             mtime_h <= mtime_h + 1;
           end

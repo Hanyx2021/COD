@@ -542,7 +542,9 @@ module thinpad_top (
     .wb_sel_i(wbs3_sel_o),
     .wb_we_i (wbs3_we_o),
     .timeout_o(timeout),
-    .timeout_clear(timeout_clear)
+    .timeout_clear(timeout_clear),
+    .stall_i(idexe_stall),
+    .pc_finish(pc_finish)
   );
 
   /* =========== Lab6 Slaves end =========== */
