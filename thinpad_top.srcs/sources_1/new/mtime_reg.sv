@@ -106,7 +106,7 @@ always_ff @(posedge clk_i)begin
   else begin
     case(state)
       STATE_IDLE:begin
-        if(timeout == '0) begin
+        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0)) begin
           if(mtime_l == 'hFFFF_FFFF) begin
             mtime_h <= mtime_h + 1;
           end

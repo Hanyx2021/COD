@@ -116,7 +116,7 @@ always_comb begin
     branch_o = 1'b0;
   end
   if(timeout_i && mode_out == 2'b00 && pc != 32'b0) begin        // timeout
-    timeout_clear = 1'b0;
+    timeout_clear = 1'b1;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
@@ -290,7 +290,7 @@ always_comb begin
         mstatus_we = 1'b0;
 
         mode_in = mstatus_out[12:11];
-        mode_we = csr_we;
+        mode_we = 1'b1;
 
         pc_branch = mepc_out;
         branch_o = 1'b1;
@@ -314,7 +314,7 @@ always_comb begin
         mepc_we = csr_we;
         mepc_in = pc;
 
-        mode_we = csr_we;
+        mode_we = 1'b1;
         mode_in = 2'b11;
 
         pc_branch = {mtvec_out[31:2],2'b00};
@@ -332,7 +332,7 @@ always_comb begin
         mcause_in = 3;
         mcause_we = csr_we;
 
-        mode_we = csr_we;
+        mode_we = 1'b1;
         mode_in = 2'b11;
 
         mepc_we = csr_we;
@@ -358,234 +358,231 @@ always_comb begin
       mode_we = 1'b0;
       csr_in = 'b0;
       case(instr_type)
-          7'b0110111:                     // LUI
-              begin
-                alu_reg = instr[31:12] << 12;
-              end
-          7'b0010111:                     // AUIPC
-              begin
-                alu_a = pc;
-                alu_b = instr[31:12] << 12;
-                alu_op = 4'b0001;
-                alu_reg = alu_y;
-              end
-          7'b1101111:                     // JAL
-              begin
-                if (instr[21] == 1'b0) begin
-                  alu_reg = pc + 4;
-                  pc_branch = instr[31] ? pc + {11'b1111_1111_111,instr[31],instr[19:12],instr[20],instr[30:21],1'b0} : pc + {11'b0000_0000_000,instr[31],instr[19:12],instr[20],instr[30:21],1'b0};
+        7'b0110111:                     // LUI
+        begin
+          alu_reg = instr[31:12] << 12;
+        end
+        7'b0010111:                     // AUIPC
+        begin
+          alu_a = pc;
+          alu_b = instr[31:12] << 12;
+          alu_op = 4'b0001;
+          alu_reg = alu_y;
+        end
+        7'b1101111:                     // JAL
+        begin
+          if (instr[21] == 1'b0) begin
+            alu_reg = pc + 4;
+            pc_branch = instr[31] ? pc + {11'b1111_1111_111,instr[31],instr[19:12],instr[20],instr[30:21],1'b0} : pc + {11'b0000_0000_000,instr[31],instr[19:12],instr[20],instr[30:21],1'b0};
+            branch_o = 1'b1;
+          end
+          else begin
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+
+            mcause_we = csr_we;
+            mcause_in = 4'h0;
+
+            mepc_we = csr_we;
+            mepc_in = pc;
+
+            mode_we = 1'b1;
+            mode_in = 2'b11;
+
+            pc_branch = {mtvec_out[31:2],2'b00};
+            branch_o = 1'b1;
+            csr_in = 'b0;
+          end
+        end
+        7'b1100111:                     // JALR
+        begin
+          if (instr[21] == 1'b0) begin
+            alu_reg = pc + 4;
+            alu_a = a_data_reg;
+            alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+            alu_op = 4'b0001;
+            pc_branch = alu_y & (~1);
+            branch_o = 1'b1;
+          end 
+          else begin
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+
+            mcause_we = csr_we;
+            mcause_in = 4'h0;
+
+            mepc_we = csr_we;
+            mepc_in = pc;
+
+            mode_we = 1'b1;
+            mode_in = 2'b11;
+
+            pc_branch = {mtvec_out[31:2],2'b00};
+            branch_o = 1'b1;
+            csr_in = 'b0;
+          end
+        end
+        7'b1100011:
+        begin
+          case(instr[14:12])
+            3'b000:                 // BEQ
+            begin
+              if(a_data_reg == b_data_reg) begin
+                  pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
                   branch_o = 1'b1;
-                end
-                else begin
-
-                  mstatus_we = 1'b0;
-                  mie_we = 1'b0;
-                  mtvec_we = 1'b0;
-                  mscratch_we = 1'b0;
-                  mip_we = 1'b0;
-                  satp_we = 1'b0;
-
-                  mcause_we = csr_we;
-                  mcause_in = 4'h0;
-
-                  mepc_we = csr_we;
-                  mepc_in = pc;
-
-                  mode_we = csr_we;
-                  mode_in = 2'b11;
-
-                  pc_branch = {mtvec_out[31:2],2'b00};
-                  branch_o = 1'b1;
-                  csr_in = 'b0;
-                end
-
               end
-          7'b1100111:                     // JALR
-              begin
-                if (instr[21] == 1'b0) begin
-                  alu_reg = pc + 4;
-                  alu_a = a_data_reg;
-                  alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                  alu_op = 4'b0001;
-                  pc_branch = alu_y & (~1);
-                  branch_o = 1'b1;
-                end 
-                else begin
-                  mstatus_we = 1'b0;
-                  mie_we = 1'b0;
-                  mtvec_we = 1'b0;
-                  mscratch_we = 1'b0;
-                  mip_we = 1'b0;
-                  satp_we = 1'b0;
-
-                  mcause_we = csr_we;
-                  mcause_in = 4'h0;
-
-                  mepc_we = csr_we;
-                  mepc_in = pc;
-
-                  mode_we = csr_we;
-                  mode_in = 2'b11;
-
-                  pc_branch = {mtvec_out[31:2],2'b00};
-                  branch_o = 1'b1;
-                  csr_in = 'b0;
-                end
+              else begin
+                  branch_o = 1'b0;
               end
-          7'b1100011:
-              begin
-                case(instr[14:12])
-                  3'b000:                 // BEQ
-                  begin
-                    if(a_data_reg == b_data_reg) begin
-                        pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
-                        branch_o = 1'b1;
-                    end
-                    else begin
-                        branch_o = 1'b0;
-                    end
-                  end
-                  3'b001:                 // BNE
-                  begin
-                    if(a_data_reg != b_data_reg) begin
-                        pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
-                        branch_o = 1'b1;
-                    end
-                    else begin
-                        branch_o = 1'b0;
-                    end
-                  end
-                endcase
+            end
+            3'b001:                 // BNE
+            begin
+              if(a_data_reg != b_data_reg) begin
+                pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                branch_o = 1'b1;
               end
-          7'b0000011:                     // LB,LW
-              begin
-                alu_a = a_data_reg;
-                alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                alu_op = 4'b0001;
-                addr_reg = alu_y;
+              else begin
+                branch_o = 1'b0;
               end
-          7'b0100011:
-              begin
-                alu_a = a_data_reg;
-                alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:25],instr[11:7]} : {20'b0000_0000_0000_0000_0000,instr[31:25],instr[11:7]};
-                alu_op = 4'b0001;
-                addr_reg = alu_y;
-                if(instr[14:12] == 3'b000)     // SB
-                begin
-                    alu_reg = b_data_reg[7:0];
-                end
-                else if(instr[14:12] == 3'b010)  // SW
-                begin
-                    alu_reg = b_data_reg;
-                end
-              end
-          7'b0010011:                         // alu rs1,imm
-              begin
-              alu_a = a_data_reg;
-              alu_reg = alu_y;
-              case(instr[14:12])
-                3'b000:                       // ADDI
-                  begin
-                    alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                    alu_op = 4'b0001;
-                  end
-                3'b110:                       // ORI
-                  begin
-                    alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                    alu_op = 4'b0100;
-                  end
-                3'b111:                       // ANDI
-                  begin
-                    alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
-                    alu_op = 4'b0011;
-                  end
-                3'b001:                       // SLLI
-                  begin
-                    alu_b = instr[25] ? 6'b00000 : instr[25:20];
-                    alu_op = 4'b0111;
-                  end
-                3'b101:                       // SRLI
-                  begin
-                    alu_b = instr[25] ? 6'b00000 : instr[25:20];
-                    alu_op = 4'b1000;
-                  end
-              endcase
-              end
-          7'b0110011:                             // alu rs1,rs2
-              begin
-                  if (instr[14:12] == 3'b110 && instr[31:25] == 7'b0000000) begin  // OR
-                    alu_a = a_data_reg;
-                    alu_b = b_data_reg;
-                    alu_op = 4'b0100;
-                    alu_reg = alu_y;
-                  end
-                  if (instr[14:12] == 3'b111 && instr[31:25] == 7'b0000000) begin  // AND
-                    alu_a = a_data_reg;
-                    alu_b = b_data_reg;
-                    alu_op = 4'b0011;
-                    alu_reg = alu_y;
-                  end
-                  if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000000) begin  // XOR
-                    alu_a = a_data_reg;
-                    alu_b = b_data_reg;
-                    alu_op = 4'b0101;
-                    alu_reg = alu_y;
-                  end
-                  if (instr[14:12] == 3'b000 && instr[31:25] == 7'b0000000) begin  // ADD
-                    alu_a = a_data_reg;
-                    alu_b = b_data_reg;
-                    alu_op = 4'b0001;
-                    alu_reg = alu_y;
-                  end
-                  if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000101) begin  // MIN
-                    alu_a = a_data_reg;
-                    alu_b = b_data_reg;
-                    if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
-                      alu_reg = a_data_reg < b_data_reg ? a_data_reg : b_data_reg;
-                    end
-                    else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
-                      alu_reg = a_data_reg;
-                    end
-                    else begin
-                      alu_reg = b_data_reg;
-                    end
-                  end
-                  if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0100000) begin  // XNOR
-                    alu_a = a_data_reg;
-                    alu_b = ~b_data_reg;
-                    alu_op = 4'b0101;
-                    alu_reg = alu_y;
-                  end
-                  if (instr[14:12] == 3'b001 && instr[31:25] == 7'b0010100) begin  // SBSET
-                    alu_a = a_data_reg;
-                    alu_b = 1 << (b_data_reg & 32'b11111);
-                    alu_op = 4'b0100;
-                    alu_reg = alu_y;
-                  end
-                  if(instr[14:12] == 3'b011 && instr[31:25] == 7'b0000000) begin   // SLTU
-                    if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0)
-                    begin
-                      alu_reg = a_data_reg < b_data_reg;
-                    end
-                    else if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b1)
-                    begin
-                      alu_reg = 1'b1;
-                    end
-                    else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0)
-                    begin
-                      alu_reg = 1'b0;
-                    end
-                    else
-                    begin
-                      alu_reg = a_data_reg < b_data_reg;
-                    end
-                  end
-              end
+            end
           endcase
+        end
+        7'b0000011:                     // LB,LW
+        begin
+          alu_a = a_data_reg;
+          alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+          alu_op = 4'b0001;
+          addr_reg = alu_y;
+        end
+        7'b0100011:
+        begin
+          alu_a = a_data_reg;
+          alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:25],instr[11:7]} : {20'b0000_0000_0000_0000_0000,instr[31:25],instr[11:7]};
+          alu_op = 4'b0001;
+          addr_reg = alu_y;
+          if(instr[14:12] == 3'b000)     // SB
+          begin
+            alu_reg = b_data_reg[7:0];
+          end
+          else if(instr[14:12] == 3'b010)  // SW
+          begin
+            alu_reg = b_data_reg;
+          end
+        end
+        7'b0010011:                         // alu rs1,imm
+        begin
+          alu_a = a_data_reg;
+          alu_reg = alu_y;
+          case(instr[14:12])
+            3'b000:                       // ADDI
+            begin
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0001;
+            end
+            3'b110:                       // ORI
+            begin
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0100;
+            end
+            3'b111:                       // ANDI
+            begin
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0011;
+            end
+            3'b001:                       // SLLI
+            begin
+              alu_b = instr[25] ? 6'b00000 : instr[25:20];
+              alu_op = 4'b0111;
+            end
+            3'b101:                       // SRLI
+            begin
+              alu_b = instr[25] ? 6'b00000 : instr[25:20];
+              alu_op = 4'b1000;
+            end
+          endcase
+        end
+        7'b0110011:                             // alu rs1,rs2
+        begin
+          if (instr[14:12] == 3'b110 && instr[31:25] == 7'b0000000) begin  // OR
+            alu_a = a_data_reg;
+            alu_b = b_data_reg;
+            alu_op = 4'b0100;
+            alu_reg = alu_y;
+          end
+          if (instr[14:12] == 3'b111 && instr[31:25] == 7'b0000000) begin  // AND
+            alu_a = a_data_reg;
+            alu_b = b_data_reg;
+            alu_op = 4'b0011;
+            alu_reg = alu_y;
+          end
+          if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000000) begin  // XOR
+            alu_a = a_data_reg;
+            alu_b = b_data_reg;
+            alu_op = 4'b0101;
+            alu_reg = alu_y;
+          end
+          if (instr[14:12] == 3'b000 && instr[31:25] == 7'b0000000) begin  // ADD
+            alu_a = a_data_reg;
+            alu_b = b_data_reg;
+            alu_op = 4'b0001;
+            alu_reg = alu_y;
+          end
+          if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000101) begin  // MIN
+            alu_a = a_data_reg;
+            alu_b = b_data_reg;
+            if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
+              alu_reg = a_data_reg < b_data_reg ? a_data_reg : b_data_reg;
+            end
+            else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
+              alu_reg = a_data_reg;
+            end
+            else begin
+              alu_reg = b_data_reg;
+            end
+          end
+          if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0100000) begin  // XNOR
+            alu_a = a_data_reg;
+            alu_b = ~b_data_reg;
+            alu_op = 4'b0101;
+            alu_reg = alu_y;
+          end
+          if (instr[14:12] == 3'b001 && instr[31:25] == 7'b0010100) begin  // SBSET
+            alu_a = a_data_reg;
+            alu_b = 1 << (b_data_reg & 32'b11111);
+            alu_op = 4'b0100;
+            alu_reg = alu_y;
+          end
+          if(instr[14:12] == 3'b011 && instr[31:25] == 7'b0000000) begin   // SLTU
+            if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0)
+            begin
+              alu_reg = a_data_reg < b_data_reg;
+            end
+            else if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b1)
+            begin
+              alu_reg = 1'b1;
+            end
+            else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0)
+            begin
+              alu_reg = 1'b0;
+            end
+            else
+            begin
+              alu_reg = a_data_reg < b_data_reg;
+            end
+          end
+        end
+      endcase
     end
-  end 
-  else // id_error_code != 4'b0000
-  begin
+  end
+  else begin // id_error_code != 4'b0000
     timeout_clear = 1'b0;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
@@ -600,14 +597,13 @@ always_comb begin
     mepc_we = csr_we;
     mepc_in = pc;
 
-    mode_we = csr_we;
+    mode_we = 1'b1;
     mode_in = 2'b11;
 
     pc_branch = {mtvec_out[31:2],2'b00};
     branch_o = 1'b1;
     csr_in = 'b0;
   end
-
 end
 
 assign pc_out = pc;
