@@ -44,7 +44,8 @@ module SEG_EXE(
   output reg mode_we,
   output reg [1:0] mode_in,
   (* DONT_TOUCH = "1" *) input wire [1:0] mode_out,
-  input wire [3:0] id_error_code
+  input wire [3:0] id_error_code,
+  input wire timeout_i
   );
 
 logic [31:0] instr;

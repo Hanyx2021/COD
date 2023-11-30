@@ -410,6 +410,8 @@ module thinpad_top (
   logic [ 3:0] wbm1_sel_o;
   logic        wbm1_we_o;
 
+  logic timeout;
+
   wb_arbiter_2 arbiter(
       .clk(sys_clk),
       .rst(sys_rst),
@@ -535,7 +537,8 @@ module thinpad_top (
     .wb_dat_i(wbs3_dat_o),
     .wb_dat_o(wbs3_dat_i),
     .wb_sel_i(wbs3_sel_o),
-    .wb_we_i (wbs3_we_o)
+    .wb_we_i (wbs3_we_o),
+    .timeout_o(timeout)
   );
 
   /* =========== Lab6 Slaves end =========== */
@@ -665,7 +668,8 @@ logic [3:0] idexe_error_code;
     .mode_we(mode_we),
     .mode_in(mode_in),
     .mode_out(mode_out),
-    .id_error_code(idexe_error_code)
+    .id_error_code(idexe_error_code),
+    .timeout_i(timeout)
   );
   /* =========== Lab6 EXE end ============== */
 

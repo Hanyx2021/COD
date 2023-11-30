@@ -12,14 +12,14 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="3880000001fs"></ZoomEndTime>
-      <Cursor1Time time="25610000fs"></Cursor1Time>
+      <ZoomEndTime time="3000000001fs"></ZoomEndTime>
+      <Cursor1Time time="2510000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="154"></NameColumnWidth>
+      <NameColumnWidth column_width="149"></NameColumnWidth>
       <ValueColumnWidth column_width="72"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="20" />
+   <WVObjectSize size="11" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -44,60 +44,24 @@
       <obj_property name="ElementShortName">data_reg[0:31][31:0]</obj_property>
       <obj_property name="ObjectShortName">data_reg[0:31][31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/seg_exe/alu_reg" type="array">
-      <obj_property name="ElementShortName">alu_reg[31:0]</obj_property>
-      <obj_property name="ObjectShortName">alu_reg[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/mtime_controller/timeout" type="logic">
+      <obj_property name="ElementShortName">timeout</obj_property>
+      <obj_property name="ObjectShortName">timeout</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/mscratch/we" type="logic">
-      <obj_property name="ElementShortName">we</obj_property>
-      <obj_property name="ObjectShortName">we</obj_property>
+   <wvobject fp_name="/tb/dut/mtime_controller/mtime_l" type="array">
+      <obj_property name="ElementShortName">mtime_l[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mtime_l[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/mscratch/data_in" type="array">
-      <obj_property name="ElementShortName">data_in[31:0]</obj_property>
-      <obj_property name="ObjectShortName">data_in[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/mtime_controller/mtime_h" type="array">
+      <obj_property name="ElementShortName">mtime_h[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mtime_h[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/mscratch/data" type="array">
-      <obj_property name="ElementShortName">data[31:0]</obj_property>
-      <obj_property name="ObjectShortName">data[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/mtime_controller/mtimecmp_l" type="array">
+      <obj_property name="ElementShortName">mtimecmp_l[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mtimecmp_l[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb/dut/confict/idexe_rs1" type="array">
-      <obj_property name="ElementShortName">idexe_rs1[5:0]</obj_property>
-      <obj_property name="ObjectShortName">idexe_rs1[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/idexe_rs2" type="array">
-      <obj_property name="ElementShortName">idexe_rs2[5:0]</obj_property>
-      <obj_property name="ObjectShortName">idexe_rs2[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/exemem_rd" type="array">
-      <obj_property name="ElementShortName">exemem_rd[5:0]</obj_property>
-      <obj_property name="ObjectShortName">exemem_rd[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/memwb_rd" type="array">
-      <obj_property name="ElementShortName">memwb_rd[5:0]</obj_property>
-      <obj_property name="ObjectShortName">memwb_rd[5:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/conflict_rs1" type="logic">
-      <obj_property name="ElementShortName">conflict_rs1</obj_property>
-      <obj_property name="ObjectShortName">conflict_rs1</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/conflict_rs2" type="logic">
-      <obj_property name="ElementShortName">conflict_rs2</obj_property>
-      <obj_property name="ObjectShortName">conflict_rs2</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/rs1_out" type="array">
-      <obj_property name="ElementShortName">rs1_out[31:0]</obj_property>
-      <obj_property name="ObjectShortName">rs1_out[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/rs2_out" type="array">
-      <obj_property name="ElementShortName">rs2_out[31:0]</obj_property>
-      <obj_property name="ObjectShortName">rs2_out[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/exemem_in" type="array">
-      <obj_property name="ElementShortName">exemem_in[31:0]</obj_property>
-      <obj_property name="ObjectShortName">exemem_in[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/confict/memwb_in" type="array">
-      <obj_property name="ElementShortName">memwb_in[31:0]</obj_property>
-      <obj_property name="ObjectShortName">memwb_in[31:0]</obj_property>
+   <wvobject fp_name="/tb/dut/mtime_controller/mtimecmp_h" type="array">
+      <obj_property name="ElementShortName">mtimecmp_h[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mtimecmp_h[31:0]</obj_property>
    </wvobject>
 </wave_config>
