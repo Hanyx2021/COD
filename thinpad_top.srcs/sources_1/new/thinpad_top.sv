@@ -247,7 +247,9 @@ module thinpad_top (
     .reset(sys_rst),
     .we(mode_we),
     .data_in(mode_in),
-    .data_out(mode_out)
+    .data_out(mode_out),
+    .stall_i(idexe_stall),
+    .pc_finish(pc_finish)
   );
 
   ALU u_alu(

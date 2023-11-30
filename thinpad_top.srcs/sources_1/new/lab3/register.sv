@@ -82,7 +82,8 @@ endmodule
 module MODE_reg(
     input wire clk,
     input wire reset,
-
+    input wire stall_i,
+    input wire pc_finish,
     input wire we,
     input wire[1:0] data_in,
     output reg[1:0] data_out
@@ -96,7 +97,7 @@ always_ff @ (posedge clk or posedge reset) begin
         data <= 2'b11;
     end
     else begin
-        if(we) begin
+        if(we && !stall_i && !pc_finish) begin
             data <= data_in;
         end
     end

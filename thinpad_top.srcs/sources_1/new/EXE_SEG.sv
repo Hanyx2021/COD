@@ -115,8 +115,8 @@ always_comb begin
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
-  if(timeout_i && pc != 32'b0) begin        // timeout
-    timeout_clear = 1'b1;
+  if(timeout_i && mode_out == 2'b00 && pc != 32'b0) begin        // timeout
+    timeout_clear = 1'b0;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
@@ -130,7 +130,7 @@ always_comb begin
     mepc_we = csr_we;
     mepc_in = pc;
 
-    mode_we = csr_we;
+    mode_we = 1;
     mode_in = 2'b11;
 
     if(mtvec_out[0] == 'b0)
