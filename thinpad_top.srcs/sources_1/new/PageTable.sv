@@ -74,8 +74,6 @@ module PageTable(
         r = pte[1];
         v = pte[0];
 
-        fault_code_o = {30'b11, req_type_i};
-
         access_fault = 0;       // reserved for PMA / PMP check
 
         permission_fault = (privilege_i == 2'b00 && !u)     // no permission to U mode
