@@ -261,6 +261,38 @@ module thinpad_top (
 
   /* ============ ALU  and  Register end =============*/
 
+  /* ============ Page Table Controller begin ============ */
+
+  logic [31:0] va_if;
+  logic req_if;
+  logic [1:0] req_type_if;
+  logic [31:0] pa_if;
+  logic ack_if;
+  logic [31:0] pte_addr_if;
+  logic pte_please_if;
+  logic [31:0] pte_if;
+  logic pte_ready_if;
+  logic [3:0] fault_code_if;
+  logic fault_if;
+
+  PageTable pagetable_if(
+    .clk(sys_clk),
+    .rst(sys_rst),
+    .va_i(va_if),
+    .req_i(req_if),
+    .req_type_i(req_type_if),
+    .privilege_i(mode_out),
+    .pa_o(pa_if),
+    .ack_o(ack_if),
+    .pte_addr_o(pte_addr_if),
+    .pte_please_o(pte_please_if),
+    .pte_i(pte_if),
+    .pte_ready_i(pte_ready_if),
+    .fault_code_o(fault_code_if),
+    .fault_o(fault_if),
+    .satp_i(satp_out)
+  );
+  /* ============ Page Table Controller end ============ */
 
   /* =========== Lab6 MUX begin =========== */
   // Wishbone MUX (Masters) => bus slaves
@@ -578,7 +610,19 @@ logic [3:0] if_error_code;
     .wbm0_ack_i(wbm0_ack_i),
     .wbm0_err_i('0),
     .wbm0_rty_i('0),
-    .wbm0_cyc_o(wbm0_cyc_o)
+    .wbm0_cyc_o(wbm0_cyc_o),
+
+    .req_o(req_if),
+    .req_type_o(req_type_if),
+    .va_o(va_if),
+    .pa_i(pa_if),
+    .ack_i(ack_if),
+    .pte_addr_i(pte_addr_if),
+    .pte_please_i(pte_please_if),
+    .pte_o(pte_if),
+    .pte_ready_o(pte_ready_if),
+    .fault_code_i(fault_code_if),
+    .fault_i(fault_if)
   );
   /* =========== Lab6 IF end ============== */
 

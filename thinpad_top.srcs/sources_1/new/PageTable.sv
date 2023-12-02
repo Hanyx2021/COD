@@ -38,7 +38,7 @@ module PageTable(
     output reg [3:0] fault_code_o,  // the same in `exception.h`
     output reg fault_o,             // '1' for fault, '0' for no fault
 
-    input wire [31:0] satp_i,       // value of CSR register satp
+    input wire [31:0] satp_i       // value of CSR register satp
     );
 
     typedef enum logic [1:0] {
