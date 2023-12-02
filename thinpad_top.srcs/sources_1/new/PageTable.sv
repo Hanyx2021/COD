@@ -50,6 +50,7 @@ module PageTable(
     state_t state;
     state_t nextstate;
 
+    reg [31:0] pte;
     reg i;
     logic u, x, w, r, v;
     logic access_fault;
@@ -62,6 +63,7 @@ module PageTable(
         else begin
             state <= nextstate;
         end
+        pte <= pte_ready_i && (state == STATE_WAIT) ? pte_i : pte;
     end
 
     always_comb begin
