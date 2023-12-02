@@ -38,13 +38,14 @@ module PageTable(
     output reg [3:0] fault_code_o,  // the same in `exception.h`
     output reg fault_o,             // '1' for fault, '0' for no fault
 
-    input wire [31:0] satp_i,       // value of CSR register satp
+    input wire [31:0] satp_i        // value of CSR register satp
     );
 
     typedef enum logic [1:0] {
         STATE_IDLE = 0,
         STATE_WAIT = 1,
-        STATE_CHECK = 2
+        STATE_CHECK = 2,
+        STATE_DONE
     } state_t;
 
     state_t state;
@@ -73,14 +74,14 @@ module PageTable(
         r = pte[1];
         v = pte[0];
 
-        mcause_val_o = {30'b11, req_type_i};
+        fault_code_o = {30'b11, req_type_i};
 
         access_fault = 0;       // reserved for PMA / PMP check
 
         permission_fault = (privilege_i == 2'b00 && !u)     // no permission to U mode
                         || (req_type_i == 2'b00 && !x)      // no permission to execute
                         || (req_type_i == 2'b01 && !r)      // no permission to read
-                        || (req_type_i == 2'b11 && !w)      // no permission to write (store)
+                        || (req_type_i == 2'b11 && !w);     // no permission to write (store)
     end
 
     always_comb begin
@@ -96,7 +97,7 @@ module PageTable(
                     pte_please_o = 0;
                     fault_o = 0;
                     fault_code_o = 4'd0;
-                    nextstate = req_i ? STATE_INIT : STATE_IDLE;
+                    nextstate = req_i ? STATE_WAIT : STATE_IDLE;
                 end
 
                 STATE_WAIT: begin
@@ -130,7 +131,7 @@ module PageTable(
                             nextstate = STATE_IDLE;
                         end
                         else begin
-                            pa_o = i ? {pte[31:22], va[21:12], va[11:0]} : {pte[31:22], pte[21:12], va[11:0]};
+                            pa_o = i ? {pte[31:22], va_i[21:12], va_i[11:0]} : {pte[31:22], pte[21:12], va_i[11:0]};
                             ack_o = 1;
                             pte_addr_o = 0;
                             pte_please_o = 0;
@@ -155,7 +156,7 @@ module PageTable(
                 end
 
                 STATE_DONE: begin
-                    pa_o = i ? {pte[31:22], va[21:12], va[11:0]} : {pte[31:22], pte[21:12], va[11:0]};
+                    pa_o = i ? {pte[31:22], va_i[21:12], va_i[11:0]} : {pte[31:22], pte[21:12], va_i[11:0]};
                     ack_o = 1;
                     pte_addr_o = 0;
                     pte_please_o = 0;
