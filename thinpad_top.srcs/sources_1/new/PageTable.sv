@@ -41,18 +41,18 @@ module PageTable(
     input wire [31:0] satp_i        // value of CSR register satp
     );
 
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         STATE_IDLE = 0,
-        STATE_WAIT = 1,
-        STATE_CHECK = 2,
-        STATE_DONE
+        STATE_WAIT_1 = 1,
+        STATE_CHECK_1 = 2,
+        STATE_WAIT_0 = 3,
+        STATE_CHECK_0 = 4
     } state_t;
 
     state_t state;
     state_t nextstate;
 
-    reg [31:0] pte;
-    reg i;
+//    reg [31:0] pte;
     logic u, x, w, r, v;
     logic access_fault;
     logic permission_fault;     // reserved for PMA / PMP check
@@ -64,15 +64,15 @@ module PageTable(
         else begin
             state <= nextstate;
         end
-        pte <= pte_ready_i && (state == STATE_WAIT) ? pte_i : pte;
+//        pte <= pte_ready_i && (state == STATE_WAIT_1 || state == STATE_WAIT_0) ? pte_i : pte;
     end
 
     always_comb begin
-        u = pte[4];
-        x = pte[3];
-        w = pte[2];
-        r = pte[1];
-        v = pte[0];
+        u = pte_i[4];
+        x = pte_i[3];
+        w = pte_i[2];
+        r = pte_i[1];
+        v = pte_i[0];
 
         access_fault = 0;       // reserved for PMA / PMP check
 
@@ -84,10 +84,16 @@ module PageTable(
 
     always_comb begin
         if(rst) begin
+            pa_o = 32'd0;
+            ack_o = 0;
+            pte_addr_o = 32'd0;
+            pte_please_o = 0;
+            fault_o = 0;
+            fault_code_o = 4'd0;
             nextstate = STATE_IDLE;
         end
         else begin
-            case(nextstate)
+            case(state)
                 STATE_IDLE: begin
                     pa_o = 32'd0;
                     ack_o = 0;
@@ -95,20 +101,20 @@ module PageTable(
                     pte_please_o = 0;
                     fault_o = 0;
                     fault_code_o = 4'd0;
-                    nextstate = req_i ? STATE_WAIT : STATE_IDLE;
+                    nextstate = req_i ? STATE_WAIT_1 : STATE_IDLE;
                 end
 
-                STATE_WAIT: begin
+                STATE_WAIT_1: begin
                     pa_o = 32'd0;
                     ack_o = 0;
-                    pte_addr_o = i ? ((satp_i[21:0] << 5) + ((i ? va_i[31:22] : va_i[21:12]) << 2)) : ((satp_i[21:0] << 5) + (pte[19:10] << 2));
-                    pte_please_o = 1;
+                    pte_addr_o = {satp_i[19:0], va_i[31:22], 2'b00};
+                    pte_please_o = !pte_ready_i;
                     fault_o = 0;
                     fault_code_o = 4'd0;
-                    nextstate = pte_ready_i ? STATE_CHECK : STATE_WAIT;
+                    nextstate = pte_ready_i ? STATE_CHECK_1 : STATE_WAIT_1;
                 end
 
-                STATE_CHECK: begin
+                STATE_CHECK_1: begin
                     if(!v || ((!r) && w)) begin     // invalid PTE
                         pa_o = 32'd0;
                         ack_o = 1;
@@ -118,8 +124,8 @@ module PageTable(
                         fault_code_o = {2'b11, req_type_i};
                         nextstate = STATE_IDLE;
                     end
-                    else if(r && x) begin           // valid leaf PTE
-                        if(permission_fault || i && pte[19:10] == 10'd0) begin  // no permission or misaligned superpage
+                    else if(r || x) begin           // valid leaf PTE
+                        if(permission_fault || pte_i[19:10] != 10'd0) begin  // no permission or misaligned superpage
                             pa_o = 32'd0;
                             ack_o = 1;
                             pte_addr_o = 32'd0;
@@ -129,7 +135,7 @@ module PageTable(
                             nextstate = STATE_IDLE;
                         end
                         else begin
-                            pa_o = i ? {pte[31:22], va_i[21:12], va_i[11:0]} : {pte[31:22], pte[21:12], va_i[11:0]};
+                            pa_o = {pte_i[31:22], va_i[21:12], va_i[11:0]};
                             ack_o = 1;
                             pte_addr_o = 0;
                             pte_please_o = 0;
@@ -138,29 +144,66 @@ module PageTable(
                             nextstate = STATE_IDLE;
                         end
                     end
-                    else if(i == 0) begin           // pointer at the last layer
+                    else begin      // pointer, go to the next layer
+                        pa_o = 0;
+                        ack_o = 0;
+                        pte_addr_o = 0;
+                        pte_please_o = 0;
+                        fault_code_o = 4'd0;
+                        fault_o = 0;
+                        nextstate = STATE_WAIT_0;
+                    end
+                end
+
+                STATE_WAIT_0: begin
+                    pa_o = 32'd0;
+                    ack_o = 0;
+                    pte_addr_o = {pte_i[29:10], va_i[21:12], 2'b00};
+                    pte_please_o = !pte_ready_i;
+                    fault_o = 0;
+                    fault_code_o = 4'd0;
+                    nextstate = pte_ready_i ? STATE_CHECK_0 : STATE_WAIT_0;
+                end
+
+                STATE_CHECK_0: begin
+                    if(!v || ((!r) && w)) begin     // invalid PTE
+                        pa_o = 32'd0;
+                        ack_o = 1;
+                        pte_addr_o = 32'd0;
+                        pte_please_o = 0;
+                        fault_o = 1;
+                        fault_code_o = {2'b11, req_type_i};
+                        nextstate = STATE_IDLE;
+                    end
+                    else if(r || x) begin           // valid leaf PTE
+                        if(permission_fault) begin  // no permission
+                            pa_o = 32'd0;
+                            ack_o = 1;
+                            pte_addr_o = 32'd0;
+                            pte_please_o = 0;
+                            fault_code_o = {2'b11, req_type_i};
+                            fault_o = 1;
+                            nextstate = STATE_IDLE;
+                        end
+                        else begin
+                            pa_o = {pte_i[29:10], va_i[11:0]};
+                            ack_o = 1;
+                            pte_addr_o = 0;
+                            pte_please_o = 0;
+                            fault_code_o = 4'd0;
+                            fault_o = 0;
+                            nextstate = STATE_IDLE;
+                        end
+                    end
+                    else begin                  // pointer at the last layer
                         pa_o = 32'd0;
                         ack_o = 0;
                         pte_addr_o = 0;
                         pte_please_o = 0;
                         fault_code_o = {2'b11, req_type_i};
                         fault_o = 1;
-                        nextstate = STATE_DONE;
+                        nextstate = STATE_IDLE;
                     end
-                    else begin
-                        i = 0;
-                        nextstate = STATE_WAIT;
-                    end
-                end
-
-                STATE_DONE: begin
-                    pa_o = i ? {pte[31:22], va_i[21:12], va_i[11:0]} : {pte[31:22], pte[21:12], va_i[11:0]};
-                    ack_o = 1;
-                    pte_addr_o = 0;
-                    pte_please_o = 0;
-                    fault_code_o = 4'd0;
-                    fault_o = 0;
-                    nextstate = STATE_IDLE;
                 end
 
                 default: begin
