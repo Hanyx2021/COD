@@ -31,7 +31,8 @@ module SEG_IF(
   output reg [31:0] pte_o,        // PTE from CPU, valid when `pte_ready_i` is '1'
   output reg pte_ready_o,         // '1' means `pte_i` is valid
   input wire [3:0] fault_code_i,  // the same in `exception.h`
-  input wire fault_i             // '1' for fault, '0' for no fault
+  input wire fault_i,             // '1' for fault, '0' for no fault
+  input wire [31:0] satp_i
 
 );
 
@@ -74,7 +75,12 @@ always_comb begin
         nextstate = STATE_IDLE;
       end
       else begin
-        nextstate = PAGE_PRE;
+        if(satp_i[31] == '1) begin
+          nextstate = PAGE_PRE;
+        end
+        else begin
+          nextstate = STATE_READ;
+        end
       end
     end
     PAGE_PRE:begin
@@ -163,7 +169,17 @@ always_ff @(posedge clk_i) begin
           if(!stall_i) begin
             pc_now_reg <= pc_next_reg;
             error <= 4'b0;
-            req_o <= 1'b1;
+            if(satp_i[31] == '1) begin
+              req_o <= 1'b1;
+            end
+            else begin
+              req_o <= 1'b0;
+              wbm0_adr_o <= pc_next_reg;
+              wbm0_sel_o <= 4'b1111;
+              wbm0_cyc_o <= 1'b1;
+              wbm0_stb_o <= 1'b1;
+              wbm0_we_o <= 1'b0;
+            end
           end
         end
         PAGE_PRE:begin
