@@ -46,7 +46,34 @@ module SEG_EXE(
   (* DONT_TOUCH = "1" *) input wire [1:0] mode_out,
   input wire [3:0] id_error_code,
   input wire timeout_i,
-  output reg timeout_clear
+  output reg timeout_clear,
+
+  output reg [31:0] wbm2_adr_o,
+  input  wire [31:0] wbm2_dat_i,
+  output reg wbm2_we_o,
+  output reg [3:0] wbm2_sel_o,
+  output reg wbm2_stb_o,
+  input  wire wbm2_ack_i,
+  input  wire wbm2_err_i,
+  input  wire wbm2_rty_i,
+  output reg wbm2_cyc_o,
+
+  output reg exe_finish,
+  output reg req_o,
+  output reg [1:0] req_type_o,
+  output reg [31:0] va_o,
+  input wire [31:0] pa_i,
+  input wire ack_i,
+  input wire [31:0] pte_addr_i,   // SRAM address, used to read a PTE
+  input wire pte_please_i,        // request for a PTE
+  output reg [31:0] pte_o,        // PTE from CPU, valid when `pte_ready_i` is '1'
+  output reg pte_ready_o,         // '1' means `pte_i` is valid
+  input wire [3:0] fault_code_i,  // the same in `exception.h`
+  input wire fault_i,             // '1' for fault, '0' for no fault
+  input wire [31:0] satp_i,
+  input wire [1:0] mode_exe,
+  input wire [1:0] mode_reg,
+  input wire mode_we_2
   );
 
 logic [31:0] instr;
@@ -60,6 +87,9 @@ logic [31:0] addr_reg;
 logic [6:0] instr_type;
 logic [31:0] csr_in;
 logic [31:0] csr_out;
+logic [31:0] pp;
+logic [3:0] error;
+logic use_page;
 
 always_ff @(posedge clk_i)begin
 if(rst_i)begin
@@ -78,6 +108,177 @@ else begin
     csr_we <= 'b0;
   end
 end
+end
+
+typedef enum logic [3:0] {
+  STATE_IDLE = 0,
+  PAGE_PRE = 1,
+  WAIT_PTE_ADDR = 2,
+  READ_PTE = 3,
+  WAIT_VA = 4,
+  STATE_DONE = 5
+} state_t;
+
+state_t state;
+state_t nextstate;
+
+always_ff @(posedge clk_i)begin
+  if(rst_i)begin
+    state <= STATE_IDLE;
+  end
+  else begin
+    state <= nextstate;
+  end
+end
+
+always_comb begin
+  exe_finish = 1'b0;
+  if(rst_i)begin
+    nextstate = STATE_IDLE;
+  end
+  else begin
+  case(state)
+    STATE_IDLE:begin
+      exe_finish = 1'b0;
+      if((instr[6:0] == 7'b0000011 || instr[6:0] == 7'b0100011) && pc != old_pc) begin
+        if(satp_i[31] == '0 || (mode_we_2 ? mode_exe : mode_reg) == 2'b11) begin
+          nextstate = STATE_IDLE;
+        end
+        else begin
+          nextstate = PAGE_PRE;
+        end
+      end
+      else begin
+        nextstate = STATE_IDLE;
+      end
+    end
+    PAGE_PRE:begin
+      exe_finish = 1'b1;
+      nextstate = WAIT_PTE_ADDR;
+    end
+    WAIT_PTE_ADDR:begin
+      exe_finish = 1'b1;
+      if(pte_please_i) begin
+        nextstate = READ_PTE;
+      end
+      else begin
+        nextstate = WAIT_PTE_ADDR;
+      end
+    end
+    READ_PTE:begin
+      exe_finish = 1'b1;
+      if(wbm2_ack_i) begin
+        nextstate = WAIT_VA;
+      end
+      else begin
+        nextstate = READ_PTE;
+      end
+    end
+    WAIT_VA:begin
+      exe_finish = 1'b1;
+      if(pte_please_i) begin
+        nextstate = READ_PTE;
+      end
+      else if(ack_i) begin
+          nextstate = STATE_DONE;
+      end
+      else begin
+        nextstate = WAIT_VA;
+      end
+    end
+    STATE_DONE:begin
+      exe_finish = 1'b1;
+      nextstate = STATE_IDLE;
+    end
+    default: begin
+      exe_finish = 1'b0;
+      nextstate = STATE_IDLE;
+    end
+ endcase
+end
+end
+
+always_ff @(posedge clk_i) begin
+  if(rst_i)begin
+    wbm2_cyc_o <= 1'b0;
+    wbm2_stb_o <= 1'b0;
+    req_o <= 1'b0;
+    pte_ready_o <= 1'b0;
+    req_type_o <= 2'b0;
+    pte_o <= 32'b0;
+    pp <= '0;
+    error <= '0;
+    use_page <= '0;
+    va_o <= '0;
+    req_type_o <= '0;
+  end
+  else begin
+      case(state)
+        STATE_IDLE:begin
+          if((instr[6:0] == 7'b0000011 || instr[6:0] == 7'b0100011) && pc != old_pc) begin
+            if(!(satp_i[31] == '0 || (mode_we_2 ? mode_exe : mode_reg) == 2'b11)) begin
+              use_page <= 'b1;
+              req_o <= 1'b1;
+              va_o <= alu_reg;
+              if(instr[6:0] == 7'b0000011) begin
+                req_type_o <= 2'b01;
+              end
+              else begin
+                req_type_o <= 2'b11;
+              end
+            end
+            else begin
+              use_page <= 'b0;
+            end
+          end
+          else begin
+            use_page <= 'b0;
+          end
+        end
+        PAGE_PRE:begin
+          req_o <= 1'b0;
+        end
+        WAIT_PTE_ADDR:begin
+          if(pte_please_i) begin
+            wbm2_adr_o <= pte_addr_i;
+            wbm2_sel_o <= 4'b1111;
+            wbm2_cyc_o <= 1'b1;
+            wbm2_stb_o <= 1'b1;
+            wbm2_we_o <= 1'b0;
+          end
+        end
+        READ_PTE:begin
+          if(wbm2_ack_i) begin
+            pte_o <= wbm2_dat_i;
+            wbm2_cyc_o <= 1'b0;
+            wbm2_stb_o <= 1'b0;
+            pte_ready_o <= 1'b1;
+          end
+        end
+        WAIT_VA:begin
+          pte_ready_o <= 1'b0;
+          if(pte_please_i) begin
+            wbm2_adr_o <= pte_addr_i;
+            wbm2_sel_o <= 4'b1111;
+            wbm2_cyc_o <= 1'b1;
+            wbm2_stb_o <= 1'b1;
+            wbm2_we_o <= 1'b0;
+          end
+          else if(ack_i) begin
+            if(fault_i) begin
+              error <= fault_code_i;
+              pp <= '0;
+            end
+            else begin
+              error <= '0;
+              pp <= pa_i;
+            end
+          end
+        end
+        STATE_DONE:begin
+        end
+      endcase
+   end
 end
 
 always_comb begin
@@ -591,10 +792,10 @@ always_comb begin
     mip_we = 1'b0;
     satp_we = 1'b0;
 
-    mcause_we = csr_we;
-    mcause_in = id_error_code;
+    mcause_we = 1'b1;
+    mcause_in = use_page ? error : id_error_code;
 
-    mepc_we = csr_we;
+    mepc_we = 1'b1;
     mepc_in = pc;
 
     mode_we = 1'b1;
@@ -609,7 +810,7 @@ end
 assign pc_out = pc;
 assign inst_out = instr;
 assign raddr_out = instr ? addr_reg:0;
-assign alu_out = instr ? alu_reg:0;
+assign alu_out = instr ? (use_page ? pp : alu_reg):0;
 
 endmodule
 
