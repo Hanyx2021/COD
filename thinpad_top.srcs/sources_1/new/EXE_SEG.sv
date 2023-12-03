@@ -110,7 +110,7 @@ always_comb begin
   satp_we = 'b0;
   satp_in = 'b0;
   mode_we = 'b0;
-  mode_in = 'b0;
+  mode_in = 2'b11;
   csr_out = 'b0;
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
