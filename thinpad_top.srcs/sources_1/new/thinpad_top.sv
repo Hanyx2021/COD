@@ -625,7 +625,9 @@ logic [3:0] if_error_code;
     .fault_i(fault_if),
 
     .satp_i(satp_out),
-    .mode_i(mode_in)
+    .mode_exe(mode_in),
+    .mode_reg(mode_out),
+    .mode_we(mode_we)
   );
   /* =========== Lab6 IF end ============== */
 

@@ -33,7 +33,9 @@ module SEG_IF(
   input wire [3:0] fault_code_i,  // the same in `exception.h`
   input wire fault_i,             // '1' for fault, '0' for no fault
   input wire [31:0] satp_i,
-  input wire [1:0] mode_i
+  input wire [1:0] mode_exe,
+  input wire [1:0] mode_reg,
+  input wire mode_we
 
 );
 
@@ -76,7 +78,7 @@ always_comb begin
         nextstate = STATE_IDLE;
       end
       else begin
-        if(satp_i[31] == '0 || mode_i == 2'b11) begin
+        if(satp_i[31] == '0 || (mode_we ? mode_exe : mode_reg) == 2'b11) begin
           nextstate = STATE_READ;
         end
         else begin
@@ -170,7 +172,7 @@ always_ff @(posedge clk_i) begin
           if(!stall_i) begin
             pc_now_reg <= pc_next_reg;
             error <= 4'b0;
-            if(!(satp_i[31] == '0 || mode_i == 2'b11)) begin
+            if(!(satp_i[31] == '0 || (mode_we ? mode_exe : mode_reg) == 2'b11)) begin
               req_o <= 1'b1;
             end
             else begin
