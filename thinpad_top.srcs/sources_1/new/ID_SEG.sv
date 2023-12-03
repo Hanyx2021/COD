@@ -100,7 +100,7 @@ always_comb begin
 end
 
 always_ff @(posedge clk_i) begin
-  if(pc) begin
+  if(instr) begin
     if (if_error_code != 4'h0) begin
       error_code <= if_error_code;
     end
@@ -122,8 +122,8 @@ always_ff @(posedge clk_i) begin
   end
 end
 
-assign rf_raddr_a = pc ? rs1:0;
-assign rf_raddr_b = pc ? rs2:0;
+assign rf_raddr_a = instr ? rs1:0;
+assign rf_raddr_b = instr ? rs2:0;
 assign pc_out = pc;
 assign inst_out = instr;
 assign a_out = a_conflict ? a_in : a_data_reg;

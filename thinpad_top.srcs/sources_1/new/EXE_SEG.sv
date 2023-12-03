@@ -115,7 +115,7 @@ always_comb begin
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
-  if(timeout_i && mode_out == 2'b00 && pc != 32'b0) begin        // timeout
+  if(timeout_i && mode_out == 2'b00 && instr != 32'b0) begin        // timeout
     timeout_clear = 1'b1;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
@@ -608,8 +608,8 @@ end
 
 assign pc_out = pc;
 assign inst_out = instr;
-assign raddr_out = pc ? addr_reg:0;
-assign alu_out = pc ? alu_reg:0;
+assign raddr_out = instr ? addr_reg:0;
+assign alu_out = instr ? alu_reg:0;
 
 endmodule
 
