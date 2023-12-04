@@ -215,20 +215,17 @@ always_ff @(posedge clk_i) begin
   else begin
       case(state)
         STATE_IDLE:begin
-          if((instr[6:0] == 7'b0000011 || instr[6:0] == 7'b0100011) && pc != old_pc) begin
-            if(!(satp_i[31] == '0 || (mode_we_2 ? mode_exe : mode_reg) == 2'b11)) begin
-              use_page <= 'b1;
+          if((instr[6:0] == 7'b0000011 || instr[6:0] == 7'b0100011) && (!(satp_i[31] == '0 || (mode_we_2 ? mode_exe : mode_reg) == 2'b11))) begin
+            use_page <= 'b1;
+            if(pc != old_pc) begin
               req_o <= 1'b1;
-              va_o <= alu_reg;
+              va_o <= addr_reg;
               if(instr[6:0] == 7'b0000011) begin
                 req_type_o <= 2'b01;
               end
               else begin
                 req_type_o <= 2'b11;
               end
-            end
-            else begin
-              use_page <= 'b0;
             end
           end
           else begin
@@ -799,8 +796,8 @@ end
 
 assign pc_out = pc;
 assign inst_out = instr;
-assign raddr_out = instr ? addr_reg:0;
-assign alu_out = instr ? (use_page ? pp : alu_reg):0;
+assign raddr_out = instr ? (use_page ? pp : addr_reg) : 0;
+assign alu_out = instr ? alu_reg : 0;
 
 endmodule
 
