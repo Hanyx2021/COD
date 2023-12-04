@@ -15,6 +15,7 @@ module SEG_EXE(
   output reg  [ 3:0] alu_op,
   input  wire [31:0] alu_y,
   output reg  [31:0] alu_out,
+  input wire [31:0] csr_in,
   output reg branch_o,
   output reg [31:0] pc_branch,
   output reg mstatus_we,
@@ -85,7 +86,6 @@ logic [31:0] b_data_reg;
 logic [31:0] alu_reg;
 logic [31:0] addr_reg;
 logic [6:0] instr_type;
-logic [31:0] csr_in;
 logic [31:0] csr_out;
 logic [31:0] pp;
 logic [3:0] error;
@@ -339,7 +339,6 @@ always_comb begin
     else
       pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
     branch_o = 1'b1;
-    csr_in = 'b0;
   end
   else if (id_error_code == 4'b0000) begin
     timeout_clear = 1'b0;
@@ -365,7 +364,7 @@ always_comb begin
         case(instr[31:20])
           12'b0011_0000_0000:
           begin
-            csr_in = mstatus_out;             // 32:mstatus
+            // 32:mstatus
             mstatus_in = csr_out;
             mstatus_we = csr_we;
             mie_we = 1'b0;
@@ -379,7 +378,7 @@ always_comb begin
           end
           12'b0011_0000_0100:
           begin
-            csr_in = mie_out;             // 33:mie
+            // 33:mie
             mie_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = csr_we;
@@ -393,7 +392,7 @@ always_comb begin
           end
           12'b0011_0000_0101:
           begin
-            csr_in = mtvec_out;             // 34:mtvec
+            // 34:mtvec
             mtvec_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -407,7 +406,7 @@ always_comb begin
           end
           12'b0011_0100_0000:
           begin
-            csr_in = mscratch_out;             // 35:mscratch
+            // 35:mscratch
             mscratch_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -421,7 +420,7 @@ always_comb begin
           end
           12'b0011_0100_0001:
           begin
-            csr_in = mepc_out;             // 36:mepc
+            // 36:mepc
             mepc_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -435,7 +434,7 @@ always_comb begin
           end
           12'b0011_0100_0010:
           begin
-            csr_in = mcause_out;             // 37:mcause
+            // 37:mcause
             mcause_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -449,7 +448,7 @@ always_comb begin
           end
           12'b0011_0100_0100:
           begin
-            csr_in = mip_out;             // 38:mip
+            // 38:mip
             mip_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -463,7 +462,7 @@ always_comb begin
           end
           12'b0001_1000_0000:
           begin
-            csr_in = satp_out;             // 39:satp
+            // 39:satp
             satp_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -476,7 +475,6 @@ always_comb begin
             mode_we = 1'b0;
           end
           default:begin
-            csr_in = 'b0;
           end
         endcase
       end
@@ -495,7 +493,6 @@ always_comb begin
 
         pc_branch = mepc_out;
         branch_o = 1'b1;
-        csr_in = 'b0;
       end
       else if(instr == 32'b00000000000000000000000001110011) begin  // ECALL
         mstatus_we = 1'b0;
@@ -520,7 +517,6 @@ always_comb begin
 
         pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
-        csr_in = 'b0;
       end
       else if(instr == 32'b00000000000100000000000001110011) begin  // EBREAK
         mstatus_we = 1'b0;
@@ -541,10 +537,8 @@ always_comb begin
 
         pc_branch = {mtvec_out[31:2],2'b00};
         branch_o = 1'b1;
-        csr_in = 'b0;
       end
       else begin
-        csr_in = 'b0;
       end
     end
     else begin                           // No CSR registers
@@ -557,7 +551,6 @@ always_comb begin
       mip_we = 1'b0;
       satp_we = 1'b0;
       mode_we = 1'b0;
-      csr_in = 'b0;
       case(instr_type)
         7'b0110111:                     // LUI
         begin
@@ -596,7 +589,6 @@ always_comb begin
 
             pc_branch = {mtvec_out[31:2],2'b00};
             branch_o = 1'b1;
-            csr_in = 'b0;
           end
         end
         7'b1100111:                     // JALR
@@ -628,7 +620,6 @@ always_comb begin
 
             pc_branch = {mtvec_out[31:2],2'b00};
             branch_o = 1'b1;
-            csr_in = 'b0;
           end
         end
         7'b1100011:
@@ -803,7 +794,6 @@ always_comb begin
 
     pc_branch = {mtvec_out[31:2],2'b00};
     branch_o = 1'b1;
-    csr_in = 'b0;
   end
 end
 
