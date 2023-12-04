@@ -88,7 +88,7 @@ logic [31:0] addr_reg;
 logic [6:0] instr_type;
 logic [31:0] csr_out;
 logic [31:0] pp;
-logic [3:0] error;
+logic [3:0] page_error;
 logic use_page;
 
 always_ff @(posedge clk_i)begin
@@ -207,7 +207,7 @@ always_ff @(posedge clk_i) begin
     req_type_o <= 2'b0;
     pte_o <= 32'b0;
     pp <= '0;
-    error <= '0;
+    page_error <= '0;
     use_page <= '0;
     va_o <= '0;
     req_type_o <= '0;
@@ -263,11 +263,11 @@ always_ff @(posedge clk_i) begin
           end
           else if(ack_i) begin
             if(fault_i) begin
-              error <= fault_code_i;
+              page_error <= fault_code_i;
               pp <= '0;
             end
             else begin
-              error <= '0;
+              page_error <= '0;
               pp <= pa_i;
             end
           end
@@ -337,7 +337,7 @@ always_comb begin
       pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
     branch_o = 1'b1;
   end
-  else if (id_error_code == 4'b0000) begin
+  else if (!(|id_error_code) && !(|page_error)) begin
     timeout_clear = 1'b0;
     if(instr_type == 7'b1110011)begin
       if(instr[14:12] == 3'b011 || instr[14:12] == 3'b010 || instr[14:12] == 3'b001) begin
@@ -781,7 +781,7 @@ always_comb begin
     satp_we = 1'b0;
 
     mcause_we = 1'b1;
-    mcause_in = use_page ? error : id_error_code;
+    mcause_in = use_page ? page_error : id_error_code;
 
     mepc_we = 1'b1;
     mepc_in = pc;
@@ -795,7 +795,7 @@ always_comb begin
 end
 
 assign pc_out = pc;
-assign inst_out = instr;
+assign inst_out = ((|id_error_code) | (|page_error)) ? 32'b0 : instr;
 assign raddr_out = instr ? (use_page ? pp : addr_reg) : 0;
 assign alu_out = instr ? alu_reg : 0;
 
