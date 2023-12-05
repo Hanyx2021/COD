@@ -52,7 +52,6 @@ module PageTable(
     state_t state;
     state_t nextstate;
 
-//    reg [31:0] pte;
     logic u, x, w, r, v;
     logic access_fault;
     logic permission_fault;     // reserved for PMA / PMP check
@@ -64,7 +63,6 @@ module PageTable(
         else begin
             state <= nextstate;
         end
-//        pte <= pte_ready_i && (state == STATE_WAIT_1 || state == STATE_WAIT_0) ? pte_i : pte;
     end
 
     always_comb begin
