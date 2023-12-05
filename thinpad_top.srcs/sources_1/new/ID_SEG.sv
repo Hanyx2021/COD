@@ -18,7 +18,16 @@ module SEG_ID(
     output reg [31:0] b_out,
     output reg [31:0] inst_out,
     input wire [3:0] if_error_code,
-    output reg [3:0] error_code
+    output reg [3:0] error_code,
+    output reg [31:0] csr_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mstatus_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mie_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mtvec_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mscratch_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mepc_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mcause_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mip_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] satp_out
     );
 
 logic [31:0] instr;
@@ -39,46 +48,55 @@ always_comb begin
             begin
                 rs1 = 5'b0;
                 rs2 = 5'b0;
+                csr_out = 32'b0;
             end
         7'b0010111:                     // AUIPC
             begin
                 rs1 = 5'b0;
                 rs2 = 5'b0;
+                csr_out = 32'b0;
             end
         7'b1101111:                     // JAL
             begin
                 rs1 = 5'b0;
                 rs2 = 5'b0;
+                csr_out = 32'b0;
             end
         7'b1100111:                     // JALR
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
+                csr_out = 32'b0;
             end
         7'b1100011:                     // BEQ,BNE
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
+                csr_out = 32'b0;
             end
         7'b0000011:                     // LB,LW
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
+                csr_out = 32'b0;
             end
         7'b0100011:                     // SB,SW
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
+                csr_out = 32'b0;
             end
         7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
+                csr_out = 32'b0;
             end
         7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
+                csr_out = 32'b0;
             end
         7'b1110011:                    // CSRRC,CSRRS,CSRRW,ECALL,EBREAK,MRET
             begin
@@ -90,6 +108,17 @@ always_comb begin
                 rs1 = 5'b0;
                 rs2 = 5'b0;
               end
+              case(instr[31:20])
+                12'b0011_0000_0000: csr_out = mstatus_out;
+                12'b0011_0000_0100: csr_out = mie_out;
+                12'b0011_0000_0101: csr_out = mtvec_out;
+                12'b0011_0100_0000: csr_out = mscratch_out;
+                12'b0011_0100_0001: csr_out = mepc_out;
+                12'b0011_0100_0010: csr_out = mcause_out;
+                12'b0011_0100_0100: csr_out = mip_out;
+                12'b0001_1000_0000: csr_out = satp_out;
+                default: csr_out = 32'b0;
+              endcase
             end
         default: begin
             rs1 = 5'b0;
@@ -100,7 +129,7 @@ always_comb begin
 end
 
 always_ff @(posedge clk_i) begin
-  if(pc) begin
+  if(instr) begin
     if (if_error_code != 4'h0) begin
       error_code <= if_error_code;
     end
@@ -122,8 +151,8 @@ always_ff @(posedge clk_i) begin
   end
 end
 
-assign rf_raddr_a = pc ? rs1:0;
-assign rf_raddr_b = pc ? rs2:0;
+assign rf_raddr_a = instr ? rs1:0;
+assign rf_raddr_b = instr ? rs2:0;
 assign pc_out = pc;
 assign inst_out = instr;
 assign a_out = a_conflict ? a_in : a_data_reg;
