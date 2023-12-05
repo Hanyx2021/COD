@@ -314,7 +314,20 @@ always_comb begin
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
-  if(timeout_i && mode_out == 2'b00 && instr != 32'b0) begin        // timeout
+  if(instr == 32'b0) begin
+    timeout_clear = 1'b0;
+    mstatus_we = 1'b0;
+    mie_we = 1'b0;
+    mtvec_we = 1'b0;
+    mscratch_we = 1'b0;
+    mip_we = 1'b0;
+    satp_we = 1'b0;
+    mepc_we = 1'b0;
+    mcause_we = 1'b0;
+    mode_we = 1'b0;
+    branch_o = 1'b0;
+  end
+  else if(timeout_i && mode_out == 2'b00 && instr != 32'b0) begin        // timeout
     timeout_clear = 1'b1;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
