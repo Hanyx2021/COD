@@ -138,10 +138,10 @@ module tb;
       .data(base_ram_data[7:0])
   );
   // 直连串口仿真模型
-//  uart_model uart (
-//    .rxd (txd),
-//    .txd (rxd)
-//  );
+  uart_model uart (
+    .rxd (txd),
+    .txd (rxd)
+  );
   // BaseRAM 仿真模型
   sram_model base1 (
       .DataIO(base_ram_data[15:0]),
