@@ -229,7 +229,7 @@ always_ff @(posedge clk_i) begin
               end
             end
           end
-          else begin
+          else if(pc != old_pc) begin
             use_page <= 'b0;
           end
         end
