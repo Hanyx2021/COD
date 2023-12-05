@@ -801,7 +801,7 @@ logic [31:0] csr_exe;
     .wbm2_rty_i('0),
     .wbm2_cyc_o(wbm2_cyc_o),
 
-    .exe_finish(exe_finish),
+    .exe_stall(exe_finish),
     .req_o(req_exe),
     .req_type_o(req_type_exe),
     .va_o(va_exe),

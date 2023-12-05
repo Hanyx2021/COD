@@ -59,7 +59,7 @@ module SEG_EXE(
   input  wire wbm2_rty_i,
   output reg wbm2_cyc_o,
 
-  output reg exe_finish,
+  output reg exe_stall,
   output reg req_o,
   output reg [1:0] req_type_o,
   output reg [31:0] va_o,
@@ -90,6 +90,7 @@ logic [31:0] csr_out;
 logic [31:0] pp;
 logic [3:0] page_error;
 logic use_page;
+logic exe_finish;
 
 always_ff @(posedge clk_i)begin
 if(rst_i)begin
@@ -771,7 +772,7 @@ always_comb begin
       endcase
     end
   end
-  else begin // id_error_code != 4'b0000
+  else begin
     timeout_clear = 1'b0;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
@@ -798,6 +799,7 @@ assign pc_out = pc;
 assign inst_out = ((|id_error_code) | (|page_error)) ? 32'b0 : instr;
 assign raddr_out = instr ? (use_page ? pp : addr_reg) : 0;
 assign alu_out = instr ? alu_reg : 0;
+assign exe_stall = exe_finish && !((|id_error_code) | (|page_error));
 
 endmodule
 
