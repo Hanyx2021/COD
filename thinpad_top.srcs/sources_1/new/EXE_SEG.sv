@@ -200,7 +200,7 @@ end
 end
 
 always_ff @(posedge clk_i) begin
-  if(rst_i)begin
+  if(rst_i || inst_in == 32'b0)begin
     wbm2_cyc_o <= 1'b0;
     wbm2_stb_o <= 1'b0;
     req_o <= 1'b0;
