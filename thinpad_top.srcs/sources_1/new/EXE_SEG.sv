@@ -338,7 +338,7 @@ always_comb begin
       pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
     branch_o = 1'b1;
   end
-  else if (!(|id_error_code) && !(|page_error)) begin
+  else if (!(|id_error_code) && !(|page_error)) begin   // no error / page-fault
     timeout_clear = 1'b0;
     if(instr_type == 7'b1110011)begin
       if(instr[14:12] == 3'b011 || instr[14:12] == 3'b010 || instr[14:12] == 3'b001) begin
