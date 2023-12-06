@@ -162,6 +162,9 @@ always_comb begin
       if(pte_please_i) begin
         nextstate = READ_PTE;
       end
+      else if(ack_i) begin
+        nextstate = STATE_DONE;
+      end
       else begin
         nextstate = WAIT_PTE_ADDR;
       end
@@ -181,7 +184,7 @@ always_comb begin
         nextstate = READ_PTE;
       end
       else if(ack_i) begin
-          nextstate = STATE_DONE;
+        nextstate = STATE_DONE;
       end
       else begin
         nextstate = WAIT_VA;
@@ -243,6 +246,16 @@ always_ff @(posedge clk_i) begin
             wbm2_cyc_o <= 1'b1;
             wbm2_stb_o <= 1'b1;
             wbm2_we_o <= 1'b0;
+          end
+          else if(ack_i) begin
+            if(fault_i) begin
+              page_error <= fault_code_i;
+              pp <= '0;
+            end
+            else begin
+              page_error <= '0;
+              pp <= pa_i;
+            end
           end
         end
         READ_PTE:begin
