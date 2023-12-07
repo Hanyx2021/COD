@@ -1678,6 +1678,7 @@ always_comb begin
     end
     else begin
       sstatus_we = 'b0;
+      sstatus_in = old_sstatus;
     end
 
 
