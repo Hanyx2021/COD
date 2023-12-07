@@ -123,6 +123,7 @@ always_comb begin
         default: begin
             rs1 = 5'b0;
             rs2 = 5'b0;
+            csr_out = 32'b0;
             error = 4'h2;
         end
     endcase
