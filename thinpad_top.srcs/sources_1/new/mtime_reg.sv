@@ -18,7 +18,10 @@ module mtime_controller #(
     output reg timeout_o,
     input wire timeout_clear,
     input wire pc_finish,
-    input wire stall_i
+    input wire stall_i,
+    input wire page_i,
+    output reg [DATA_WIDTH-1:0] time_l,
+    output reg [DATA_WIDTH-1:0] time_h
 );
 
 typedef enum logic [1:0] {
@@ -36,6 +39,8 @@ reg [DATA_WIDTH-1:0] mtimecmp_l;
 reg [DATA_WIDTH-1:0] mtimecmp_h;
 logic timeout;
 
+assign time_l = mtime_l;
+assign time_h = mtime_h;
 assign timeout_o = timeout;
 
 always_ff @(posedge clk_i)begin
@@ -111,7 +116,7 @@ always_ff @(posedge clk_i)begin
   else begin
     case(state)
       STATE_IDLE:begin
-        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i) begin
+        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i && !page_i) begin
           if(mtime_l == 'hFFFF_FFFF) begin
             mtime_h <= mtime_h + 1;
           end
