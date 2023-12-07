@@ -141,7 +141,7 @@ else begin
     csr_we <= 'b0;
   end
   else if(old_pc != pc) begin
-    csr_we <= (instr[19:15] != 5'b0) ? 'b1 : 'b0;
+    csr_we <= 'b1;
   end
   else begin
     csr_we <= 'b0;
@@ -444,12 +444,12 @@ always_comb begin
         case(instr[14:12])
           3'b011:                      // CSRRC
           begin
-            csr_out = csr_in & (~a_data_reg);
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in & (~a_data_reg));
             alu_reg = csr_in;
           end
           3'b010:                      // CSRRS
           begin
-            csr_out = csr_in | a_data_reg;
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in | a_data_reg);
             alu_reg = csr_in;
           end
           3'b001:                      // CSRRW
@@ -459,12 +459,12 @@ always_comb begin
           end
           3'b111:                      // CSRRCI
           begin
-            csr_out = csr_in & (~{27'b0,instr[19:15]});
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in & (~{27'b0,instr[19:15]}));
             alu_reg = csr_in;
           end
           3'b110:                      // CSRRSI
           begin
-            csr_out = csr_in | {27'b0,instr[19:15]};
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in | {27'b0,instr[19:15]});
             alu_reg = csr_in;
           end
           3'b101:                      // CSRRWI
