@@ -654,6 +654,7 @@ logic [3:0] if_error_code;
     .branch_i(pc_branch_o),
     .stall_i(pc_stall_i),
     .pc_finish(pc_finish),
+    .exe_finish_i(exe_finish),
     .error_code(if_error_code),
 
     .wbm0_adr_o(wbm0_adr_o),

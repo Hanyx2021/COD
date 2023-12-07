@@ -9,6 +9,7 @@ module SEG_IF(
   input wire branch_i,                // '1' for read input PC, '0' for PC+4
   input wire stall_i,                 // '0' for update pc_now_reg, '1' for stall
   output reg pc_finish,
+  input reg exe_finish_i,             // '1' for EXE not finished yet
 
   output reg [31:0] wbm0_adr_o,
   input  wire [31:0] wbm0_dat_i,
@@ -50,7 +51,8 @@ typedef enum logic [3:0] {
   READ_PTE = 3,
   WAIT_VA = 4,
   ERROR_PRO = 5,
-  STATE_READ = 6
+  STATE_READ = 6,
+  WAIT_FAULT = 7
 } state_t;
 
 state_t state;
@@ -135,16 +137,20 @@ always_comb begin
     end
     ERROR_PRO:begin
       pc_finish = 1'b1;
-      nextstate = STATE_IDLE;
+      nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
     end
     STATE_READ:begin
       pc_finish = 1'b1;
       if(wbm0_ack_i) begin
-        nextstate = STATE_IDLE;
+        nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
       end
       else begin
         nextstate = STATE_READ;
       end
+    end
+    WAIT_FAULT: begin
+      pc_finish = 1'b1;
+      nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
     end
     default: begin
       pc_finish = 1'b0;
@@ -256,6 +262,12 @@ always_ff @(posedge clk_i) begin
             wbm0_cyc_o <= 1'b0;
             wbm0_stb_o <= 1'b0;
             pc_out <= pc_now_reg;
+          end
+        end
+        WAIT_FAULT:begin
+          if(!stall_i) begin
+            pc_now_reg <= pc_next_reg;
+            error <= 4'b0;
           end
         end
       endcase
