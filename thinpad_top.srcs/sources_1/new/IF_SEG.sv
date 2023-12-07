@@ -9,7 +9,8 @@ module SEG_IF(
   input wire branch_i,                // '1' for read input PC, '0' for PC+4
   input wire stall_i,                 // '0' for update pc_now_reg, '1' for stall
   output reg pc_finish,
-  input reg exe_finish_i,             // '1' for EXE not finished yet
+  input wire exe_finish_i,            // '1' for EXE not finished yet
+  input wire tlb_flush_i,             // '1' for TLB is being flushed
 
   output reg [31:0] wbm0_adr_o,
   input  wire [31:0] wbm0_dat_i,
@@ -90,7 +91,7 @@ always_comb begin
     end
     PAGE_PRE:begin
       pc_finish = 1'b1;
-      nextstate = WAIT_PTE_ADDR;
+      nextstate = tlb_flush_i ? (exe_finish_i ? WAIT_FAULT : STATE_IDLE) : WAIT_PTE_ADDR;
     end
     WAIT_PTE_ADDR:begin
       pc_finish = 1'b1;

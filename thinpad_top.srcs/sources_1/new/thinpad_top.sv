@@ -418,14 +418,18 @@ module thinpad_top (
   logic pte_ready_if;
   logic [3:0] fault_code_if;
   logic fault_if;
+  logic [31:0] tlb_flush_addr;
+  logic tlb_flush;
+  logic tlb_flush_all;
 
   PageTable pagetable_if(
     .clk(sys_clk),
     .rst(sys_rst),
     .va_i(va_if),
     .req_i(req_if),
-    .flush_addr_i(32'b0),
-    .flush_i(0),
+    .flush_addr_i(tlb_flush_addr),
+    .flush_i(tlb_flush),
+    .flush_all_i(tlb_flush_all),
     .req_type_i(req_type_if),
     .privilege_i(mode_out),
     .pa_o(pa_if),
@@ -456,8 +460,9 @@ module thinpad_top (
     .rst(sys_rst),
     .va_i(va_exe),
     .req_i(req_exe),
-    .flush_addr_i(32'b0),
-    .flush_i(0),
+    .flush_addr_i(tlb_flush_addr),
+    .flush_i(tlb_flush),
+    .flush_all_i(tlb_flush_all),
     .req_type_i(req_type_exe),
     .privilege_i(mode_out),
     .pa_o(pa_exe),
@@ -804,6 +809,7 @@ logic [3:0] if_error_code;
     .stall_i(pc_stall_i),
     .pc_finish(pc_finish),
     .exe_finish_i(exe_finish),
+    .tlb_flush_i(tlb_flush),
     .error_code(if_error_code),
 
     .wbm0_adr_o(wbm0_adr_o),
@@ -1016,6 +1022,9 @@ logic [31:0] csr_exe;
     .exe_stall(exe_finish),
     .req_o(req_exe),
     .req_type_o(req_type_exe),
+    .tlb_flush_addr_o(tlb_flush_addr),
+    .tlb_flush_o(tlb_flush),
+    .tlb_flush_all_o(tlb_flush_all),
     .va_o(va_exe),
     .pa_i(pa_exe),
     .ack_i(ack_exe),

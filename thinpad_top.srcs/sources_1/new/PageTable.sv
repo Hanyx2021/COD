@@ -25,8 +25,9 @@ module PageTable(
 
     input wire [31:0] va_i,         // input virtual address
     input wire req_i,               // '1' for a request
-    input wire [31:0] flush_addr_i, // address to be flushed, all-zero means flush the whole TLB
+    input wire [31:0] flush_addr_i, // address to be flushed
     input wire flush_i,             // '1' for a flush instruction
+    input wire flush_all_i,         // '1' for flush the whole TLB
     input wire [1:0] req_type_i,    // 00: execute, 01: read, 10: reserved, 11: store
     input wire [1:0] privilege_i,   // 00: U, 01: S, 11: M
     output reg [31:0] pa_o,         // [comb] output physical address
@@ -50,7 +51,8 @@ module PageTable(
         STATE_WAIT_1 = 3,           // not found in TLB, request PTE from CPU
         STATE_UPD_CHECK_1 = 4,      // check permission etc., update TLB if a superpage is found
         STATE_WAIT_0 = 5,           // request a leaf PTE from CPU
-        STATE_UPD_CHECK_0 = 6       // check permission etc., update TLB
+        STATE_UPD_CHECK_0 = 6,      // check permission etc., update TLB
+        STATE_FLUSH_DONE = 7
     } state_t;
 
     state_t state;                  // [ff]
@@ -123,22 +125,26 @@ module PageTable(
                 end
 
                 STATE_FLUSH: begin
-                    if(|flush_addr_i) begin     // flush address
-                        if(tlb[tlb_i0][0] && tlb[tlb_i0][39:25] == va_i[31:17]) begin
-                            tlb[tlb_i0][0] <= 32'b0;
-                            tlb_first_first[tlbi] <= 1;
-                        end
-                        if(tlb[tlb_i1][0] && tlb[tlb_i1][39:25] == va_i[31:17]) begin
-                            tlb[tlb_i1][0] <= 32'b0;
-                            tlb_first_first[tlbi] <= 0;
-                        end
-                    end
-                    else begin                  // flush the whole TLB
+                    if(flush_all_i) begin                  // flush the whole TLB
                         for(i = 0; i < 64; i++) begin
                             tlb[i] <= 40'b0;
                         end
                         tlb_first_first <= 32'hffff_ffff;
                     end
+                    else begin                              // flush entries of designated address
+                        if(tlb[tlb_i0][0] && tlb[tlb_i0][39:25] == flush_addr_i[31:17]) begin
+                            tlb[tlb_i0][0] <= 32'b0;
+                            tlb_first_first[tlbi] <= 1;
+                        end
+                        if(tlb[tlb_i1][0] && tlb[tlb_i1][39:25] == flush_addr_i[31:17]) begin
+                            tlb[tlb_i1][0] <= 32'b0;
+                            tlb_first_first[tlbi] <= 0;
+                        end
+                    end
+                end
+                
+                STATE_FLUSH_DONE: begin
+                    selected_tlb_entry <= 40'b0;
                 end
 
                 STATE_TLB: begin
@@ -211,7 +217,17 @@ module PageTable(
                     pte_please_o = 0;
                     fault_code_o = 4'd0;
                     fault_o = 0;
-                    nextstate = STATE_IDLE;
+                    nextstate = req_i ? STATE_TLB : STATE_FLUSH_DONE;
+                end
+
+                STATE_FLUSH_DONE: begin
+                    pa_o = 32'd0;
+                    ack_o = 0;
+                    pte_addr_o = 32'd0;
+                    pte_please_o = 0;
+                    fault_code_o = 4'd0;
+                    fault_o = 0;
+                    nextstate = req_i ? STATE_TLB : STATE_FLUSH_DONE;
                 end
 
                 STATE_TLB: begin

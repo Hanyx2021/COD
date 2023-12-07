@@ -100,6 +100,9 @@ module SEG_EXE(
   output reg exe_stall,
   output reg req_o,
   output reg [1:0] req_type_o,
+  output reg [31:0] tlb_flush_addr_o,   // used for SFENCE.VMA
+  output reg tlb_flush_o,               // '1' for an SFENCE.VMA instruction
+  output reg tlb_flush_all_o,           // '0' for flush entries about `tlb_flush_addr_o`, '1' for all
   output reg [31:0] va_o,
   input wire [31:0] pa_i,
   input wire ack_i,
@@ -386,6 +389,22 @@ always_comb begin
   mode_we = 'b0;
   mode_in = 2'b11;
   csr_out = 'b0;
+  if(instr[31:25] == 7'b0001001 && instr[14:0] == 15'b1110011) begin  // set SFENCE.VMA-related output
+    tlb_flush_o = 1;
+    if(|instr[19:15]) begin
+      tlb_flush_addr_o = 32'b0;
+      tlb_flush_all_o = 0;
+    end
+    else begin
+      tlb_flush_addr_o = a_data_reg;
+      tlb_flush_all_o = 1;
+    end
+  end
+  else begin
+    tlb_flush_o = 0;
+    tlb_flush_addr_o = 32'b0;
+    tlb_flush_all_o = 0;
+  end
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
@@ -1233,7 +1252,32 @@ always_comb begin
         end
         branch_o = 1'b1;
       end
-      else begin
+      else if(instr[31:25] == 7'b0001001 && instr[14:7] == 8'b0000_0000) begin   // SFENCE.VMA
+        mie_we = 1'b0;
+        mtvec_we = 1'b0;
+        mscratch_we = 1'b0;
+        mip_we = 1'b0;
+        satp_we = 1'b0;
+        mhartid_we = 'b0;
+        mideleg_we = 'b0;
+        medeleg_we = 'b0;
+        mtval_we = 'b0;
+        mcause_we = 'b0;
+        mepc_we = 'b0;
+        mstatus_we = 'b0;
+        stval_we = 'b0;
+        stvec_we = 'b0;
+        sscratch_we = 'b0;
+        sie_we = 'b0;
+        sip_we = 'b0;
+        scause_we = 'b0;
+        sepc_we = 'b0;
+        sstatus_we = 'b0;
+
+        mode_we = 'b0;
+
+        pc_branch = pc + 4;
+        branch_o = 1'b1;
       end
     end
     else begin                           // No CSR registers
