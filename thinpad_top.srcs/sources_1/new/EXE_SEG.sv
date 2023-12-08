@@ -439,7 +439,6 @@ always_comb begin
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
-    mip_we = 1'b0;
     satp_we = 1'b0;
     mhartid_we = 'b0;
     mideleg_we = 'b0;
@@ -453,6 +452,8 @@ always_comb begin
     sscratch_we = 'b0;
     sie_we = 'b0;
     sip_we = 'b0;
+    mie_we = 'b0;
+    mip_we = 'b0;
 
     mcause_we = csr_we;
     mcause_in = {1'b1,31'b0111};
@@ -461,7 +462,7 @@ always_comb begin
     mepc_in = pc;
 
     mode_we = 1;
-    mode_in = 2'b11;
+    mode_in = 2'b01;
 
     if(mtvec_out[0] == 'b0)
       pc_branch = {mtvec_out[31:2],2'b00};

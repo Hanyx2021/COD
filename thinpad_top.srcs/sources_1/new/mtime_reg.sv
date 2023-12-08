@@ -37,6 +37,7 @@ reg [DATA_WIDTH-1:0] mtime_l;
 reg [DATA_WIDTH-1:0] mtime_h;
 reg [DATA_WIDTH-1:0] mtimecmp_l;
 reg [DATA_WIDTH-1:0] mtimecmp_h;
+reg MTIP;
 logic timeout;
 
 assign time_l = mtime_l;
@@ -62,11 +63,11 @@ always_comb begin
   end
   else begin
     if(mtime_h > mtimecmp_h) begin
-      timeout = '1;
+      timeout = !MTIP;
     end
     else if(mtime_h == mtimecmp_h) begin
       if(mtime_l >= mtimecmp_l) begin
-        timeout = '1;
+        timeout = !MTIP;
       end
       else begin
         timeout = '0;
@@ -106,17 +107,24 @@ end
 end
 
 always_ff @(posedge clk_i)begin
-  if(rst_i || timeout_clear)begin
+  if(rst_i)begin
     wb_ack_o <= 1'b0;
     mtime_l <= 32'b0;
     mtime_h <= 32'b0;
     mtimecmp_l <= 32'b0;
     mtimecmp_h <= 32'b0;
+    MTIP <= 'b0;
   end
   else begin
+    if((mtime_l >= mtimecmp_l && mtime_h == mtimecmp_h) || (mtime_h > mtimecmp_h)) begin
+      MTIP <= 'b1;
+    end
+    else begin
+      MTIP <= 'b0;
+    end
     case(state)
       STATE_IDLE:begin
-        if(timeout == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i && !page_i) begin
+        if(MTIP == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i && !page_i) begin
           if(mtime_l == 'hFFFF_FFFF) begin
             mtime_h <= mtime_h + 1;
           end
