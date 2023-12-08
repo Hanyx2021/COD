@@ -68,31 +68,31 @@ always_comb begin
                 rs2 = 5'b0;
                 csr_out = 32'b0;
             end
-        7'b1100011:                     // BEQ,BNE
+        7'b1100011:                     // BEQ,BNE,BLT,BGE,BLTU,BGEU
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
                 csr_out = 32'b0;
             end
-        7'b0000011:                     // LB,LW
+        7'b0000011:                     // LB,LW,LH,LBU,LHU
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
                 csr_out = 32'b0;
             end
-        7'b0100011:                     // SB,SW
+        7'b0100011:                     // SB,SW,SH
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
                 csr_out = 32'b0;
             end
-        7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI
+        7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI,XORI,SRAI,SLTIU,SLTI
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
                 csr_out = 32'b0;
             end
-        7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU
+        7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU,SUB,SRA,SRL,SLL,SLT
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
