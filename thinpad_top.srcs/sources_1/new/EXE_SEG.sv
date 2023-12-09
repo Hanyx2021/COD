@@ -1513,7 +1513,7 @@ always_comb begin
           addr_reg = alu_y;
           if(instr[14:12] == 3'b000)     // SB
           begin
-            alu_reg = b_data_reg[7:0];
+            alu_reg = b_data_reg;
           end
           else if(instr[14:12] == 3'b010)  // SW
           begin
@@ -1521,7 +1521,7 @@ always_comb begin
           end
           else if (instr[14:12] == 3'b001)  // SH
           begin
-            alu_reg = b_data_reg[15:0];
+            alu_reg = b_data_reg;
           end
         end
         7'b0010011:                         // alu rs1,imm
