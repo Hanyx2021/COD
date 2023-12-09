@@ -482,7 +482,7 @@ always_comb begin
       branch_o = 1'b1;
     end
   end
-  else if(mip_out[5] && mie_out[5] && (mode_out = 2'b01 && mstatus_out[1] || mode_out < 2'b01)) begin        // S-mode timeout
+  else if(mip_out[5] && mie_out[5] && (mode_out == 2'b01 && mstatus_out[1] || mode_out < 2'b01)) begin        // S-mode timeout
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
