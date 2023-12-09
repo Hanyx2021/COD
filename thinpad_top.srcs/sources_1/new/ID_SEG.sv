@@ -119,7 +119,12 @@ always_comb begin
             end
         7'b1110011:                    // CSRRC,CSRRS,CSRRW,ECALL,EBREAK,MRET
             begin
-              if (instr[14:12] != 3'b000) begin
+              if (instr == 32'h10500073) begin  // WFI, treat as illegal for debugging
+                rs1 = 5'b0;
+                rs2 = 5'b0;
+                error = 4'h2;
+              end
+              else if (instr[14:12] != 3'b000) begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
               end
