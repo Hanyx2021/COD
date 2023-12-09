@@ -1,5 +1,7 @@
 /* =================== EXE SEG ===============*/
-module SEG_EXE(
+module SEG_EXE #(
+  parameter csr_we = 1
+) (
   input wire clk_i,
   input wire rst_i,
 
@@ -117,7 +119,6 @@ module SEG_EXE(
 logic [31:0] instr;
 logic [31:0] pc;
 logic [31:0] old_pc;
-logic csr_we;
 logic [31:0] a_data_reg;
 logic [31:0] b_data_reg;
 logic [31:0] alu_reg;
@@ -130,22 +131,12 @@ logic use_page;
 logic exe_finish;
 
 always_ff @(posedge clk_i)begin
-if(rst_i)begin
-  old_pc <= 32'b0;
-  csr_we <= 'b0;
-end
-else begin
-  old_pc <= pc_in;
-  if(csr_we == 'b1) begin
-    csr_we <= 'b0;
-  end
-  else if(old_pc != pc) begin
-    csr_we <= 'b1;
+  if(rst_i)begin
+    old_pc <= 32'b0;
   end
   else begin
-    csr_we <= 'b0;
+    old_pc <= pc_in;
   end
-end
 end
 
 typedef enum logic [3:0] {
