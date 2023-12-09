@@ -50,7 +50,7 @@ always_comb begin
         wbm1_sel_o = 4'b1111;
       end
       else begin
-        wbm1_sel_o = 4'b1 << (wbm1_adr_o & 32'h3);     // SB
+        wbm1_sel_o = 4'b1 << (raddr_in & 32'h3);     // SB
       end
     end
     else if (instr[14:12] == 3'b001) begin   // LH,SH,LHU
@@ -59,7 +59,7 @@ always_comb begin
         wbm1_sel_o = 4'b1111;
       end
       else begin
-        wbm1_sel_o = 4'b11 << (wbm1_adr_o & 32'h2);    // SH
+        wbm1_sel_o = 4'b11 << (raddr_in & 32'h2);    // SH
       end
     end
     if(state == STATE_IDLE) begin
@@ -148,8 +148,26 @@ always_comb begin
             wbm1_cyc_o <= 1'b1;
             wbm1_stb_o <= 1'b1;
             wbm1_we_o <= 1'b1;
-            wbm1_adr_o <= raddr_in;
-            wbm1_dat_o <= alu_in;
+            wbm1_adr_o <= raddr_in & ~3;
+            if(inst_in[14:12] == 3'b000) begin                     // SB
+              case(raddr_in[1:0])
+                2'b00: wbm1_dat_o <= {24'b0,alu_in[7:0]};
+                2'b01: wbm1_dat_o <= {16'b0,alu_in[7:0],8'b0};
+                2'b10: wbm1_dat_o <= {8'b0,alu_in[7:0],16'b0};
+                2'b11: wbm1_dat_o <= {alu_in[7:0],24'b0};
+              endcase
+            end
+            else if(inst_in[14:12] == 3'b010) begin                // SW
+              wbm1_dat_o <= alu_in;
+            end
+            else begin                                            // SH
+              if(raddr_in[1]) begin
+                wbm1_dat_o <= {alu_in[15:0],16'b0};
+              end
+              else begin
+                wbm1_dat_o <= {16'b0,alu_in[15:0]};
+              end
+            end
             data_ack_o <= 1'b1;
           end
           else if(instr_type == 7'b0000011) begin        // LB,LW,LH,LBU,LHU
