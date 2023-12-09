@@ -44,13 +44,22 @@ always_comb begin
     if(instr[14:12] == 3'b010) begin
       wbm1_sel_o = 4'b1111;                  // LW,SW
     end
-    else begin
-      if(instr[6:0] == 7'b0000011)                      // LB
+    else if(instr[14:12] == 3'b000) begin    // LB,SB,LBU
+      if(instr[6:0] == 7'b0000011)                      // LB,LBU
       begin
         wbm1_sel_o = 4'b1111;
       end
       else begin
         wbm1_sel_o = 4'b1 << (wbm1_adr_o & 32'h3);     // SB
+      end
+    end
+    else if (instr[14:12] == 3'b001) begin   // LH,SH,LHU
+      if(instr[6:0] == 7'b0000011)                      // LH,LHU
+      begin
+        wbm1_sel_o = 4'b1111;
+      end
+      else begin
+        wbm1_sel_o = 4'b11 << (wbm1_adr_o & 32'h2);    // SH
       end
     end
     if(state == STATE_IDLE) begin
@@ -87,10 +96,10 @@ always_comb begin
     else begin
     case(state)
       STATE_IDLE:begin
-        if(instr_type == 7'b0000011)begin          // LB,LW
+        if(instr_type == 7'b0000011)begin          // LB,LW,LH,LBU,LWU,LHU
           nextstate = STATE_READ;
         end
-        else if(instr_type == 7'b0100011) begin    // SW,SB
+        else if(instr_type == 7'b0100011) begin    // SW,SB,SH
           nextstate = STATE_WRITE;
         end
         else begin                                 // no need to read or write
@@ -135,7 +144,7 @@ always_comb begin
         STATE_IDLE:begin
           pc <= pc_in;
           instr <= inst_in;
-          if(instr_type == 7'b0100011) begin             // SB,SW
+          if(instr_type == 7'b0100011) begin             // SB,SW,SH
             wbm1_cyc_o <= 1'b1;
             wbm1_stb_o <= 1'b1;
             wbm1_we_o <= 1'b1;
@@ -143,7 +152,7 @@ always_comb begin
             wbm1_dat_o <= alu_in;
             data_ack_o <= 1'b1;
           end
-          else if(instr_type == 7'b0000011) begin        // LB
+          else if(instr_type == 7'b0000011) begin        // LB,LW,LH,LBU,LHU
             wbm1_cyc_o <= 1'b1;
             wbm1_stb_o <= 1'b1;
             wbm1_we_o <= 1'b0;
@@ -156,11 +165,20 @@ always_comb begin
           end
         end
         STATE_READ:begin
-          if(wbm1_ack_i) begin                      // LB,LW
-            if(instr[14:12] == 3'b010) begin
-              data_out <= wbm1_dat_i;
+          if(wbm1_ack_i) begin                      // LB,LW,LH,LBU,LHU
+            if(instr[14:12] == 3'b010) begin // LW
+              data_out <= wbm1_dat_i; 
             end
-            else begin
+            else if (instr[14:12] == 3'b000) begin // LB
+              case(wbm1_adr_o[1:0])
+                  2'b00: begin data_out[7:0] <= wbm1_dat_i[7:0]; data_out[31:8] <= {24{wbm1_dat_i[7]}};end
+                  2'b01: begin data_out[7:0] <= wbm1_dat_i[15:8]; data_out[31:8] <= {24{wbm1_dat_i[15]}};end
+                  2'b10: begin data_out[7:0] <= wbm1_dat_i[23:16]; data_out[31:8] <= {24{wbm1_dat_i[23]}};end
+                  2'b11: begin data_out[7:0] <= wbm1_dat_i[31:24]; data_out[31:8] <= {24{wbm1_dat_i[31]}};end
+              endcase
+            end
+            // LBU
+            else if (instr[14:12] == 3'b000) begin
               case(wbm1_adr_o[1:0])
                   2'b00: data_out <= {24'b0,wbm1_dat_i[7:0]};
                   2'b01: data_out <= {24'b0,wbm1_dat_i[15:8]};
@@ -168,13 +186,28 @@ always_comb begin
                   2'b11: data_out <= {24'b0,wbm1_dat_i[31:24]};
               endcase
             end
+            // LH
+            else if (instr[14:12] == 3'b001) begin
+              case(wbm1_adr_o[1])
+                  1'b0: begin data_out[15:0] <= wbm1_dat_i[15:0]; data_out[31:16] <= {16{wbm1_dat_i[15]}};end
+                  1'b1: begin data_out[15:0] <= wbm1_dat_i[31:16]; data_out[31:16] <= {16{wbm1_dat_i[31]}};end
+              endcase
+            end
+            // LHU
+            else if (instr[14:12] == 3'b001) begin
+              case(wbm1_adr_o[1])
+                  1'b0: data_out <= {16'b0,wbm1_dat_i[15:0]};
+                  1'b1: data_out <= {16'b0,wbm1_dat_i[31:16]};
+              endcase
+            end
+
             wbm1_cyc_o <= 1'b0;
             wbm1_stb_o <= 1'b0;
             data_ack_o <= 1'b0;
             wbm1_we_o <= 1'b1;
           end
         end
-        STATE_WRITE:begin                          // SW,SB
+        STATE_WRITE:begin                          // SW,SB,SH
           if(wbm1_ack_i) begin
             wbm1_cyc_o <= 1'b0;
             wbm1_stb_o <= 1'b0;
