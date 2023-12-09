@@ -433,7 +433,7 @@ always_comb begin
     mode_we = 1'b0;
     branch_o = 1'b0;
   end
-  else if(timeout_i && mode_out == 2'b00 && instr != 32'b0) begin        // timeout
+  else if(timeout_i && mode_out < 2'b11 && instr != 32'b0) begin        // timeout
     timeout_clear = 1'b1;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
@@ -445,8 +445,8 @@ always_comb begin
     medeleg_we = 'b0;
     mtval_we = 'b0;
     sstatus_we = 'b0;
-    sepc_we = 'b0;
-    scause_we = 'b0;
+    mepc_we = 'b0;
+    mcause_we = 'b0;
     stval_we = 'b0;
     stvec_we = 'b0;
     sscratch_we = 'b0;
@@ -455,19 +455,19 @@ always_comb begin
     mie_we = 'b0;
     mip_we = 'b0;
 
-    mcause_we = csr_we;
-    mcause_in = {1'b1,31'b0111};
+    scause_we = csr_we;
+    scause_in = {1'b1,31'b0111};
 
-    mepc_we = csr_we;
-    mepc_in = pc;
+    sepc_we = csr_we;
+    sepc_in = pc;
 
     mode_we = 1;
     mode_in = 2'b01;
 
-    if(mtvec_out[0] == 'b0)
-      pc_branch = {mtvec_out[31:2],2'b00};
+    if(stvec_out[0] == 'b0)
+      pc_branch = {stvec_out[31:2],2'b00};
     else
-      pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
+      pc_branch = {stvec_out[31:2],2'b00} + scause_in << 2 ;
     branch_o = 1'b1;
   end
   else if (!(|id_error_code) && !(|page_error)) begin   // no error / page-fault
