@@ -9,6 +9,8 @@ module SEG_IF(
   input wire branch_i,                // '1' for read input PC, '0' for PC+4
   input wire stall_i,                 // '0' for update pc_now_reg, '1' for stall
   output reg pc_finish,
+  input wire exe_finish_i,            // '1' for EXE not finished yet
+  input wire tlb_flush_i,             // '1' for TLB is being flushed
 
   output reg [31:0] wbm0_adr_o,
   input  wire [31:0] wbm0_dat_i,
@@ -50,7 +52,8 @@ typedef enum logic [3:0] {
   READ_PTE = 3,
   WAIT_VA = 4,
   ERROR_PRO = 5,
-  STATE_READ = 6
+  STATE_READ = 6,
+  WAIT_FAULT = 7
 } state_t;
 
 state_t state;
@@ -88,12 +91,20 @@ always_comb begin
     end
     PAGE_PRE:begin
       pc_finish = 1'b1;
-      nextstate = WAIT_PTE_ADDR;
+      nextstate = tlb_flush_i ? (exe_finish_i ? WAIT_FAULT : STATE_IDLE) : WAIT_PTE_ADDR;
     end
     WAIT_PTE_ADDR:begin
       pc_finish = 1'b1;
       if(pte_please_i) begin
         nextstate = READ_PTE;
+      end
+      else if(ack_i) begin
+        if(fault_i) begin
+          nextstate = ERROR_PRO;
+        end
+        else begin
+          nextstate = STATE_READ;
+        end
       end
       else begin
         nextstate = WAIT_PTE_ADDR;
@@ -127,16 +138,20 @@ always_comb begin
     end
     ERROR_PRO:begin
       pc_finish = 1'b1;
-      nextstate = STATE_IDLE;
+      nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
     end
     STATE_READ:begin
       pc_finish = 1'b1;
       if(wbm0_ack_i) begin
-        nextstate = STATE_IDLE;
+        nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
       end
       else begin
         nextstate = STATE_READ;
       end
+    end
+    WAIT_FAULT: begin
+      pc_finish = 1'b1;
+      nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
     end
     default: begin
       pc_finish = 1'b0;
@@ -196,6 +211,18 @@ always_ff @(posedge clk_i) begin
             wbm0_stb_o <= 1'b1;
             wbm0_we_o <= 1'b0;
           end
+          else if(ack_i) begin
+            if(fault_i) begin
+              error <= fault_code_i;
+            end
+            else begin
+              wbm0_adr_o <= pa_i;
+              wbm0_sel_o <= 4'b1111;
+              wbm0_cyc_o <= 1'b1;
+              wbm0_stb_o <= 1'b1;
+              wbm0_we_o <= 1'b0;
+            end
+          end
         end
         READ_PTE:begin
           if(wbm0_ack_i) begin
@@ -236,6 +263,12 @@ always_ff @(posedge clk_i) begin
             wbm0_cyc_o <= 1'b0;
             wbm0_stb_o <= 1'b0;
             pc_out <= pc_now_reg;
+          end
+        end
+        WAIT_FAULT:begin
+          if(!stall_i) begin
+            pc_now_reg <= pc_next_reg;
+            error <= 4'b0;
           end
         end
       endcase

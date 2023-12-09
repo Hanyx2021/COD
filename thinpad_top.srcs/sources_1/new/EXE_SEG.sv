@@ -20,6 +20,8 @@ module SEG_EXE(
   output reg [31:0] pc_branch,
   output reg mstatus_we,
   output reg [31:0] mstatus_in,
+  input wire [31:0] old_mstatus,
+  input wire [31:0] old_sstatus,
   (* DONT_TOUCH = "1" *) input wire [31:0] mstatus_out,
   output reg mie_we,
   output reg [31:0] mie_in,
@@ -42,6 +44,42 @@ module SEG_EXE(
   output reg satp_we,
   output reg [31:0] satp_in,
   (* DONT_TOUCH = "1" *) input wire [31:0] satp_out,
+  output reg mhartid_we,
+  output reg [31:0] mhartid_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] mhartid_out,
+  output reg mideleg_we,
+  output reg [31:0] mideleg_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] mideleg_out,
+  output reg medeleg_we,
+  output reg [31:0] medeleg_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] medeleg_out,
+  output reg mtval_we,
+  output reg [31:0] mtval_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] mtval_out,
+  output reg sstatus_we,
+  output reg [31:0] sstatus_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] sstatus_out,
+  output reg sepc_we,
+  output reg [31:0] sepc_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] sepc_out,
+  output reg scause_we,
+  output reg [31:0] scause_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] scause_out,
+  output reg stval_we,
+  output reg [31:0] stval_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] stval_out,
+  output reg stvec_we,
+  output reg [31:0] stvec_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] stvec_out,
+  output reg sscratch_we,
+  output reg [31:0] sscratch_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] sscratch_out,
+  output reg sie_we,
+  output reg [31:0] sie_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] sie_out,
+  output reg sip_we,
+  output reg [31:0] sip_in,
+  (* DONT_TOUCH = "1" *) input wire [31:0] sip_out,
   output reg mode_we,
   output reg [1:0] mode_in,
   (* DONT_TOUCH = "1" *) input wire [1:0] mode_out,
@@ -62,6 +100,9 @@ module SEG_EXE(
   output reg exe_stall,
   output reg req_o,
   output reg [1:0] req_type_o,
+  output reg [31:0] tlb_flush_addr_o,   // used for SFENCE.VMA
+  output reg tlb_flush_o,               // '1' for an SFENCE.VMA instruction
+  output reg tlb_flush_all_o,           // '0' for flush entries about `tlb_flush_addr_o`, '1' for all
   output reg [31:0] va_o,
   input wire [31:0] pa_i,
   input wire ack_i,
@@ -163,6 +204,9 @@ always_comb begin
       if(pte_please_i) begin
         nextstate = READ_PTE;
       end
+      else if(ack_i) begin
+        nextstate = STATE_DONE;
+      end
       else begin
         nextstate = WAIT_PTE_ADDR;
       end
@@ -182,7 +226,7 @@ always_comb begin
         nextstate = READ_PTE;
       end
       else if(ack_i) begin
-          nextstate = STATE_DONE;
+        nextstate = STATE_DONE;
       end
       else begin
         nextstate = WAIT_VA;
@@ -244,6 +288,16 @@ always_ff @(posedge clk_i) begin
             wbm2_cyc_o <= 1'b1;
             wbm2_stb_o <= 1'b1;
             wbm2_we_o <= 1'b0;
+          end
+          else if(ack_i) begin
+            if(fault_i) begin
+              page_error <= fault_code_i;
+              pp <= '0;
+            end
+            else begin
+              page_error <= '0;
+              pp <= pa_i;
+            end
           end
         end
         READ_PTE:begin
@@ -309,14 +363,54 @@ always_comb begin
   mip_in = 'b0;
   satp_we = 'b0;
   satp_in = 'b0;
+  mhartid_we = 'b0;
+  mhartid_in = 'b0;
+  mideleg_we = 'b0;
+  mideleg_in = 'b0;
+  medeleg_we = 'b0;
+  medeleg_in = 'b0;
+  mtval_we = 'b0;
+  mtval_in = 'b0;
+  sstatus_we = 'b0;
+  sstatus_in = 'b0;
+  sepc_we = 'b0;
+  sepc_in = 'b0;
+  scause_we = 'b0;
+  scause_in = 'b0;
+  stval_we = 'b0;
+  stval_in = 'b0;
+  stvec_we = 'b0;
+  stvec_in = 'b0;
+  sscratch_we = 'b0;
+  sscratch_in = 'b0;
+  sie_we = 'b0;
+  sie_in = 'b0;
+  sip_we = 'b0;
+  sip_in = 'b0;
   mode_we = 'b0;
   mode_in = 2'b11;
   csr_out = 'b0;
   imm = 'b0;
+  if(instr[31:25] == 7'b0001001 && instr[14:0] == 15'b1110011) begin  // set SFENCE.VMA-related output
+    tlb_flush_o = 1;
+    if(|instr[19:15]) begin
+      tlb_flush_addr_o = 32'b0;
+      tlb_flush_all_o = 0;
+    end
+    else begin
+      tlb_flush_addr_o = a_data_reg;
+      tlb_flush_all_o = 1;
+    end
+  end
+  else begin
+    tlb_flush_o = 0;
+    tlb_flush_addr_o = 32'b0;
+    tlb_flush_all_o = 0;
+  end
   if(instr_type != 7'b1100011) begin
     branch_o = 1'b0;
   end
-  if(instr == 32'b0) begin
+  if(instr == 32'b0) begin                          // bubble
     timeout_clear = 1'b0;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
@@ -326,6 +420,18 @@ always_comb begin
     satp_we = 1'b0;
     mepc_we = 1'b0;
     mcause_we = 1'b0;
+    mhartid_we = 'b0;
+    mideleg_we = 'b0;
+    medeleg_we = 'b0;
+    mtval_we = 'b0;
+    sstatus_we = 'b0;
+    sepc_we = 'b0;
+    scause_we = 'b0;
+    stval_we = 'b0;
+    stvec_we = 'b0;
+    sscratch_we = 'b0;
+    sie_we = 'b0;
+    sip_we = 'b0;
     mode_we = 1'b0;
     branch_o = 1'b0;
   end
@@ -337,6 +443,18 @@ always_comb begin
     mscratch_we = 1'b0;
     mip_we = 1'b0;
     satp_we = 1'b0;
+    mhartid_we = 'b0;
+    mideleg_we = 'b0;
+    medeleg_we = 'b0;
+    mtval_we = 'b0;
+    sstatus_we = 'b0;
+    sepc_we = 'b0;
+    scause_we = 'b0;
+    stval_we = 'b0;
+    stvec_we = 'b0;
+    sscratch_we = 'b0;
+    sie_we = 'b0;
+    sip_we = 'b0;
 
     mcause_we = csr_we;
     mcause_in = {1'b1,31'b0111};
@@ -356,16 +474,16 @@ always_comb begin
   else if (!(|id_error_code) && !(|page_error)) begin   // no error / page-fault
     timeout_clear = 1'b0;
     if(instr_type == 7'b1110011)begin
-      if(instr[14:12] == 3'b011 || instr[14:12] == 3'b010 || instr[14:12] == 3'b001) begin
+      if(instr[14:12] != 3'b000 && instr[14:12] != 3'b100) begin
         case(instr[14:12])
           3'b011:                      // CSRRC
           begin
-            csr_out = csr_in & (~a_data_reg);
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in & (~a_data_reg));
             alu_reg = csr_in;
           end
           3'b010:                      // CSRRS
           begin
-            csr_out = csr_in | a_data_reg;
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in | a_data_reg);
             alu_reg = csr_in;
           end
           3'b001:                      // CSRRW
@@ -373,11 +491,26 @@ always_comb begin
             csr_out = a_data_reg;
             alu_reg = csr_in;
           end
+          3'b111:                      // CSRRCI
+          begin
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in & (~{27'b0,instr[19:15]}));
+            alu_reg = csr_in;
+          end
+          3'b110:                      // CSRRSI
+          begin
+            csr_out = (instr[19:15] == 5'b0) ? csr_in : (csr_in | {27'b0,instr[19:15]});
+            alu_reg = csr_in;
+          end
+          3'b101:                      // CSRRWI
+          begin
+            csr_out = {27'b0,instr[19:15]};
+            alu_reg = csr_in;
+          end
         endcase
         case(instr[31:20])
           12'b0011_0000_0000:
           begin
-            // 32:mstatus
+            //mstatus
             mstatus_in = csr_out;
             mstatus_we = csr_we;
             mie_we = 1'b0;
@@ -388,10 +521,22 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0011_0000_0100:
           begin
-            // 33:mie
+            //mie
             mie_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = csr_we;
@@ -402,10 +547,22 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0011_0000_0101:
           begin
-            // 34:mtvec
+            //mtvec
             mtvec_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -416,10 +573,22 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0011_0100_0000:
           begin
-            // 35:mscratch
+            //mscratch
             mscratch_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -430,10 +599,22 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0011_0100_0001:
           begin
-            // 36:mepc
+            //mepc
             mepc_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -444,10 +625,22 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0011_0100_0010:
           begin
-            // 37:mcause
+            //mcause
             mcause_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -458,10 +651,22 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0011_0100_0100:
           begin
-            // 38:mip
+            //mip
             mip_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -472,10 +677,22 @@ always_comb begin
             mip_we = csr_we;
             satp_we = 1'b0;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
           12'b0001_1000_0000:
           begin
-            // 39:satp
+            //satp
             satp_in = csr_out;
             mstatus_we = 1'b0;
             mie_we = 1'b0;
@@ -486,12 +703,357 @@ always_comb begin
             mip_we = 1'b0;
             satp_we = csr_we;
             mode_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b1111_0001_0100:
+          begin
+            //mhartid
+            mhartid_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = csr_we;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0011_0000_0011:
+          begin
+            //mideleg
+            mideleg_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = csr_we;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0011_0000_0010:
+          begin
+            //medeleg
+            medeleg_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = csr_we;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0011_0100_0011:
+          begin
+            //mtval
+            mtval_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = csr_we;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0000_0000:
+          begin
+            //sstatus
+            sstatus_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = csr_we;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0100_0001:
+          begin
+            //sepc
+            sepc_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = csr_we;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0100_0010:
+          begin
+            //scause
+            scause_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = csr_we;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0100_0011:
+          begin
+            //stval
+            stval_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = csr_we;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0000_0101:
+          begin
+            //stvec
+            stvec_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = csr_we;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0100_0000:
+          begin
+            //sscratch
+            sscratch_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = csr_we;
+            sie_we = 'b0;
+            sip_we = 'b0;
+          end
+          12'b0001_0000_0100:
+          begin
+            //sie
+            sie_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = csr_we;
+            sip_we = 'b0;
+          end
+          12'b0001_0100_0100:
+          begin
+            //sip
+            sip_in = csr_out;
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = csr_we;
           end
           default:begin
+            mstatus_we = 1'b0;
+            mie_we = 1'b0;
+            mtvec_we = 1'b0;
+            mscratch_we = 1'b0;
+            mepc_we = 1'b0;
+            mcause_we = 1'b0;
+            mip_we = 1'b0;
+            satp_we = 1'b0;
+            mode_we = 1'b0;
+            mhartid_we = 1'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            sstatus_we = 'b0;
+            sepc_we = 'b0;
+            scause_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
           end
         endcase
       end
-      else if(instr == 32'b00110000001000000000000001110011) begin  // MRET
+      else if(instr == 32'b0011_0000_0010_0000_0000_0000_0111_0011) begin  // MRET
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
@@ -499,59 +1061,225 @@ always_comb begin
         mcause_we = 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
-        mstatus_we = 1'b0;
+        mhartid_we = 'b0;
+        mideleg_we = 'b0;
+        medeleg_we = 'b0;
+        mtval_we = 'b0;
+        sstatus_we = 'b0;
+        sepc_we = 'b0;
+        scause_we = 'b0;
+        stval_we = 'b0;
+        stvec_we = 'b0;
+        sscratch_we = 'b0;
+        sie_we = 'b0;
+        sip_we = 'b0;
 
-        mode_in = mstatus_out[12:11];
+        mstatus_in = {old_mstatus[31:13],2'b00,old_mstatus[10:0]};
+        mstatus_we = csr_we;
+
+        mode_in = old_mstatus[12:11];
         mode_we = 1'b1;
 
         pc_branch = mepc_out;
         branch_o = 1'b1;
       end
-      else if(instr == 32'b00000000000000000000000001110011) begin  // ECALL
-        mstatus_we = 1'b0;
+      else if(instr == 32'b0001_0000_0010_0000_0000_0000_0111_0011) begin  // SRET
+        mie_we = 1'b0;
+        mtvec_we = 1'b0;
+        mscratch_we = 1'b0;
+        mepc_we = 1'b0;
+        mcause_we = 1'b0;
+        mip_we = 1'b0;
+        satp_we = 1'b0;
+        mhartid_we = 'b0;
+        mideleg_we = 'b0;
+        medeleg_we = 'b0;
+        mtval_we = 'b0;
+        sepc_we = 'b0;
+        scause_we = 'b0;
+        stval_we = 'b0;
+        stvec_we = 'b0;
+        sscratch_we = 'b0;
+        sie_we = 'b0;
+        sip_we = 'b0;
+
+        mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],1'b1,old_mstatus[4:2],old_mstatus[5],old_mstatus[0]};
+        mstatus_we = 1'b1;
+
+        sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],1'b1,old_sstatus[4:2],old_sstatus[5],old_sstatus[0]};
+        sstatus_we = 1'b1;
+
+        mode_in = {1'b0,old_sstatus[8]};
+        mode_we = 1'b1;
+
+        pc_branch = sepc_out;
+        branch_o = 1'b1;
+      end
+      else if(instr == 32'b0000_0000_0000_0000_0000_0000_0111_0011) begin  // ECALL
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
+        mhartid_we = 'b0;
+        mideleg_we = 'b0;
+        medeleg_we = 'b0;
+        mtval_we = 'b0;
+        stval_we = 'b0;
+        stvec_we = 'b0;
+        sscratch_we = 'b0;
+        sie_we = 'b0;
+        sip_we = 'b0;
 
-        mcause_we = csr_we;
-        case(mode_out)
-          2'b00: mcause_in = 8;
-          2'b01: mcause_in = 9;
-          2'b11: mcause_in = 11;
-        endcase
+        if(mode_out == 2'b00) begin
+          scause_we = csr_we;
+          mcause_we = 'b0;
+          scause_in = 8;
+        end
+        else begin
+          scause_we = 'b0;
+          mcause_we = csr_we;
+          case(mode_out)
+            2'b01: mcause_in = 9;
+            2'b11: mcause_in = 11;
+          endcase
+        end
 
-        mepc_we = csr_we;
-        mepc_in = pc;
+        if(mode_out == 2'b00) begin
+          sepc_we = csr_we;
+          mepc_we = 'b0;
+          sepc_in = pc;
+        end
+        else begin
+          sepc_we = 'b0;
+          mepc_we = csr_we;
+          mepc_in = pc;
+        end
+
 
         mode_we = 1'b1;
-        mode_in = 2'b11;
+        case(mode_out)
+          2'b00:mode_in = 2'b01;
+          2'b01:mode_in = 2'b11;
+        endcase
 
-        pc_branch = {mtvec_out[31:2],2'b00};
+        mstatus_we = csr_we;
+        case(mode_out)
+          2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+          2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
+          2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
+        endcase
+
+        if(mode_out == 2'b00) begin
+          sstatus_we = csr_we;
+          sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+        end
+        else begin
+          sstatus_we = 'b0;
+        end
+
+        if(mode_out == 2'b00) begin
+          pc_branch = {stvec_out[31:2],2'b00};
+        end
+        else begin
+          pc_branch = {mtvec_out[31:2],2'b00};
+        end
         branch_o = 1'b1;
       end
       else if(instr == 32'b00000000000100000000000001110011) begin  // EBREAK
-        mstatus_we = 1'b0;
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
         mip_we = 1'b0;
         satp_we = 1'b0;
+        mhartid_we = 'b0;
+        mideleg_we = 'b0;
+        medeleg_we = 'b0;
+        mtval_we = 'b0;
+        stval_we = 'b0;
+        stvec_we = 'b0;
+        sscratch_we = 'b0;
+        sie_we = 'b0;
+        sip_we = 'b0;
 
-        mcause_in = 3;
-        mcause_we = csr_we;
+        if(mode_out == 2'b00) begin
+          scause_we = csr_we;
+          mcause_we = 'b0;
+          scause_in = 3;
+        end
+        else begin
+          scause_we = 'b0;
+          mcause_we = csr_we;
+          mcause_in = 3;
+        end
+
+        if(mode_out == 2'b00) begin
+          sepc_we = csr_we;
+          mepc_we = 'b0;
+          sepc_in = pc;
+        end
+        else begin
+          sepc_we = 'b0;
+          mepc_we = csr_we;
+          mepc_in = pc;
+        end
+
 
         mode_we = 1'b1;
-        mode_in = 2'b11;
+        case(mode_out)
+          2'b00:mode_in = 2'b01;
+          2'b01:mode_in = 2'b11;
+        endcase
 
-        mepc_we = csr_we;
-        mepc_in = pc;
+        mstatus_we = csr_we;
+        case(mode_out)
+          2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+          2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
+          2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
+        endcase
 
-        pc_branch = {mtvec_out[31:2],2'b00};
+        if(mode_out == 2'b00) begin
+          sstatus_we = csr_we;
+          sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+        end
+        else begin
+          sstatus_we = 'b0;
+        end
+
+        if(mode_out == 2'b00) begin
+          pc_branch = {stvec_out[31:2],2'b00};
+        end
+        else begin
+          pc_branch = {mtvec_out[31:2],2'b00};
+        end
         branch_o = 1'b1;
       end
-      else begin
+      else if(instr[31:25] == 7'b0001001 && instr[14:7] == 8'b0000_0000) begin   // SFENCE.VMA
+        mie_we = 1'b0;
+        mtvec_we = 1'b0;
+        mscratch_we = 1'b0;
+        mip_we = 1'b0;
+        satp_we = 1'b0;
+        mhartid_we = 'b0;
+        mideleg_we = 'b0;
+        medeleg_we = 'b0;
+        mtval_we = 'b0;
+        mcause_we = 'b0;
+        mepc_we = 'b0;
+        mstatus_we = 'b0;
+        stval_we = 'b0;
+        stvec_we = 'b0;
+        sscratch_we = 'b0;
+        sie_we = 'b0;
+        sip_we = 'b0;
+        scause_we = 'b0;
+        sepc_we = 'b0;
+        sstatus_we = 'b0;
+
+        mode_we = 'b0;
+
+        pc_branch = pc + 4;
+        branch_o = 1'b1;
       end
     end
     else begin                           // No CSR registers
@@ -564,6 +1292,18 @@ always_comb begin
       mip_we = 1'b0;
       satp_we = 1'b0;
       mode_we = 1'b0;
+      mhartid_we = 'b0;
+      mideleg_we = 'b0;
+      medeleg_we = 'b0;
+      mtval_we = 'b0;
+      sstatus_we = 'b0;
+      sepc_we = 'b0;
+      scause_we = 'b0;
+      stval_we = 'b0;
+      stvec_we = 'b0;
+      sscratch_we = 'b0;
+      sie_we = 'b0;
+      sip_we = 'b0;
       case(instr_type)
         7'b0110111:                     // LUI
         begin
@@ -584,23 +1324,70 @@ always_comb begin
             branch_o = 1'b1;
           end
           else begin
-            mstatus_we = 1'b0;
             mie_we = 1'b0;
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
             mip_we = 1'b0;
             satp_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
 
-            mcause_we = csr_we;
-            mcause_in = 4'h0;
+            if(mode_out == 2'b00) begin
+              scause_we = csr_we;
+              mcause_we = 'b0;
+              scause_in = 4'h0;
+            end
+            else begin
+              scause_we = 'b0;
+              mcause_we = csr_we;
+              mcause_in = 4'h0;
+            end
 
-            mepc_we = csr_we;
-            mepc_in = pc;
+            if(mode_out == 2'b00) begin
+              sepc_we = csr_we;
+              mepc_we = 'b0;
+              sepc_in = pc;
+            end
+            else begin
+              sepc_we = 'b0;
+              mepc_we = csr_we;
+              mepc_in = pc;
+            end
 
             mode_we = 1'b1;
-            mode_in = 2'b11;
+            case(mode_out)
+              2'b00:mode_in = 2'b01;
+              2'b01:mode_in = 2'b11;
+            endcase
 
-            pc_branch = {mtvec_out[31:2],2'b00};
+            mstatus_we = csr_we;
+            case(mode_out)
+              2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+              2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
+              2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
+            endcase
+
+            if(mode_out == 2'b00) begin
+              sstatus_we = csr_we;
+              sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+            end
+            else begin
+              sstatus_we = 'b0;
+            end
+
+            if(mode_out == 2'b00) begin
+              pc_branch = {stvec_out[31:2],2'b00};
+            end
+            else begin
+              pc_branch = {mtvec_out[31:2],2'b00};
+            end
             branch_o = 1'b1;
           end
         end
@@ -613,25 +1400,72 @@ always_comb begin
             alu_op = 4'b0001;
             pc_branch = alu_y & (~1);
             branch_o = 1'b1;
-          end 
+          end
           else begin
-            mstatus_we = 1'b0;
             mie_we = 1'b0;
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
             mip_we = 1'b0;
             satp_we = 1'b0;
+            mhartid_we = 'b0;
+            mideleg_we = 'b0;
+            medeleg_we = 'b0;
+            mtval_we = 'b0;
+            stval_we = 'b0;
+            stvec_we = 'b0;
+            sscratch_we = 'b0;
+            sie_we = 'b0;
+            sip_we = 'b0;
 
-            mcause_we = csr_we;
-            mcause_in = 4'h0;
+            if(mode_out == 2'b00) begin
+              scause_we = csr_we;
+              mcause_we = 'b0;
+              scause_in = 4'h0;
+            end
+            else begin
+              scause_we = 'b0;
+              mcause_we = csr_we;
+              mcause_in = 4'h0;
+            end
 
-            mepc_we = csr_we;
-            mepc_in = pc;
+            if(mode_out == 2'b00) begin
+              sepc_we = csr_we;
+              mepc_we = 'b0;
+              sepc_in = pc;
+            end
+            else begin
+              sepc_we = 'b0;
+              mepc_we = csr_we;
+              mepc_in = pc;
+            end
 
             mode_we = 1'b1;
-            mode_in = 2'b11;
+            case(mode_out)
+              2'b00:mode_in = 2'b01;
+              2'b01:mode_in = 2'b11;
+            endcase
 
-            pc_branch = {mtvec_out[31:2],2'b00};
+            mstatus_we = csr_we;
+            case(mode_out)
+              2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+              2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
+              2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
+            endcase
+
+            if(mode_out == 2'b00) begin
+              sstatus_we = csr_we;
+              sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+            end
+            else begin
+              sstatus_we = 'b0;
+            end
+
+            if(mode_out == 2'b00) begin
+              pc_branch = {stvec_out[31:2],2'b00};
+            end
+            else begin
+              pc_branch = {mtvec_out[31:2],2'b00};
+            end
             branch_o = 1'b1;
           end
         end
@@ -952,25 +1786,75 @@ always_comb begin
       endcase
     end
   end
-  else begin
+  else begin                          // other errors
     timeout_clear = 1'b0;
-    mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
     mip_we = 1'b0;
     satp_we = 1'b0;
+    mhartid_we = 'b0;
+    mideleg_we = 'b0;
+    medeleg_we = 'b0;
+    mtval_we = 'b0;
+    stval_we = 'b0;
+    stvec_we = 'b0;
+    sscratch_we = 'b0;
+    sie_we = 'b0;
+    sip_we = 'b0;
 
-    mcause_we = 1'b1;
-    mcause_in = use_page ? page_error : id_error_code;
+    if(mode_out == 2'b00) begin
+      mcause_we = 1'b0;
+      scause_we = 1'b1;
+      scause_in = use_page ? page_error : id_error_code;
+    end
+    else begin
+      scause_we = 1'b0;
+      mcause_we = 1'b1;
+      mcause_in = use_page ? page_error : id_error_code;
+    end
 
-    mepc_we = 1'b1;
-    mepc_in = pc;
+
+    if(mode_out == 2'b00) begin
+      mepc_we = 1'b0;
+      sepc_we = 1'b1;
+      sepc_in = pc;
+    end
+    else begin
+      sepc_we = 1'b0;
+      mepc_we = 1'b1;
+      mepc_in = pc;
+    end
 
     mode_we = 1'b1;
-    mode_in = 2'b11;
+    case(mode_out)
+      2'b00:mode_in = 2'b01;
+      2'b01:mode_in = 2'b11;
+    endcase
 
-    pc_branch = {mtvec_out[31:2],2'b00};
+    mstatus_we = csr_we;
+    case(mode_out)
+      2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+      2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
+      2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
+    endcase
+
+    if(mode_out == 2'b00) begin
+      sstatus_we = csr_we;
+      sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+    end
+    else begin
+      sstatus_we = 'b0;
+      sstatus_in = old_sstatus;
+    end
+
+
+    if(mode_out == 2'b00) begin
+      pc_branch = {stvec_out[31:2],2'b00};
+    end
+    else begin
+      pc_branch = {mtvec_out[31:2],2'b00};
+    end
     branch_o = 1'b1;
   end
 end

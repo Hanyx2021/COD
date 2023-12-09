@@ -20,6 +20,8 @@ module SEG_ID(
     input wire [3:0] if_error_code,
     output reg [3:0] error_code,
     output reg [31:0] csr_out,
+    output reg [31:0] old_mstatus,
+    output reg [31:0] old_sstatus,
     (* DONT_TOUCH = "1" *) input wire [31:0] mstatus_out,
     (* DONT_TOUCH = "1" *) input wire [31:0] mie_out,
     (* DONT_TOUCH = "1" *) input wire [31:0] mtvec_out,
@@ -27,7 +29,21 @@ module SEG_ID(
     (* DONT_TOUCH = "1" *) input wire [31:0] mepc_out,
     (* DONT_TOUCH = "1" *) input wire [31:0] mcause_out,
     (* DONT_TOUCH = "1" *) input wire [31:0] mip_out,
-    (* DONT_TOUCH = "1" *) input wire [31:0] satp_out
+    (* DONT_TOUCH = "1" *) input wire [31:0] satp_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mhartid_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mideleg_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] medeleg_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] mtval_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] sstatus_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] sepc_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] scause_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] stval_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] stvec_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] sscratch_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] sie_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] sip_out,
+    (* DONT_TOUCH = "1" *) input wire [31:0] time_l,
+    (* DONT_TOUCH = "1" *) input wire [31:0] time_h
     );
 
 logic [31:0] instr;
@@ -37,6 +53,9 @@ logic [5:0] rs1, rs2;
 logic [31:0] a_data_reg;
 logic [31:0] b_data_reg;
 logic [3:0] error;
+
+assign old_mstatus = mstatus_out;
+assign old_sstatus = sstatus_out;
 
 always_comb begin
     pc = pc_in;
@@ -117,12 +136,28 @@ always_comb begin
                 12'b0011_0100_0010: csr_out = mcause_out;
                 12'b0011_0100_0100: csr_out = mip_out;
                 12'b0001_1000_0000: csr_out = satp_out;
+                12'b1111_0001_0100: csr_out = mhartid_out;
+                12'b0011_0000_0011: csr_out = mideleg_out;
+                12'b0011_0000_0010: csr_out = medeleg_out;
+                12'b0011_0100_0011: csr_out = mtval_out;
+                12'b0001_0000_0010: csr_out = mstatus_out;
+                12'b0001_0000_0000: csr_out = sstatus_out;
+                12'b0001_0100_0001: csr_out = sepc_out;
+                12'b0001_0100_0010: csr_out = scause_out;
+                12'b0001_0100_0011: csr_out = stval_out;
+                12'b0001_0000_0101: csr_out = stvec_out;
+                12'b0001_0100_0000: csr_out = sscratch_out;
+                12'b0001_0000_0100: csr_out = sie_out;
+                12'b0001_0100_0100: csr_out = sip_out;
+                12'b1100_0000_0001: csr_out = time_l;
+                12'b1100_1000_0001: csr_out = time_h;
                 default: csr_out = 32'b0;
               endcase
             end
         default: begin
             rs1 = 5'b0;
             rs2 = 5'b0;
+            csr_out = 32'b0;
             error = 4'h2;
         end
     endcase

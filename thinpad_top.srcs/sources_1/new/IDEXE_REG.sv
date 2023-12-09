@@ -21,6 +21,10 @@ module REG_IDEXE(
     input wire pc_finish,
     input wire [31:0] csr_in,
     output wire [31:0] csr_out,
+    input wire [31:0] mstatus_in,
+    output reg [31:0] mstatus_out,
+    input wire [31:0] sstatus_in,
+    output reg [31:0] sstatus_out,
 
     input wire [3:0] id_error_code,
     output wire [3:0] exe_error_code
@@ -35,6 +39,8 @@ reg [5:0] rs2;
 reg [5:0] load_rd;
 reg [3:0] error_code;
 reg [31:0] csr;
+reg [31:0] mstatus;
+reg [31:0] sstatus;
 
 assign pc_out = pc;
 assign inst_out = instr;
@@ -44,6 +50,8 @@ assign idexe_rs1 = rs1;
 assign idexe_rs2 = rs2;
 assign exe_error_code = error_code;
 assign csr_out = csr;
+assign mstatus_out = mstatus;
+assign sstatus_out = sstatus;
 
 always_comb begin
   if (inst_in[6:0] != 7'b0110111 && inst_in[6:0] != 7'b0010111 && inst_in[6:0] != 7'b1101111) begin
@@ -80,6 +88,8 @@ always_ff @(posedge clk_i) begin
     b <= '0;
     error_code <= '0;
     csr <= '0;
+    mstatus <= '0;
+    sstatus <= '0;
   end
   else if(stall_i || pc_finish) begin
   end
@@ -90,6 +100,8 @@ always_ff @(posedge clk_i) begin
     b <= '0;
     error_code <= '0;
     csr <= '0;
+    mstatus <= '0;
+    sstatus <= '0;
   end
   else begin
     pc <= pc_in;
@@ -98,6 +110,8 @@ always_ff @(posedge clk_i) begin
     b <= b_in;
     error_code <= id_error_code;
     csr <= csr_in;
+    mstatus <= mstatus_in;
+    sstatus <= sstatus_in;
   end
 end
 
