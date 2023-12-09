@@ -15,13 +15,13 @@ module mtime_controller #(
     output reg [DATA_WIDTH-1:0] wb_dat_o,
     input wire [DATA_WIDTH/8-1:0] wb_sel_i,
     input wire wb_we_i,                                   // 0 read;1 write
-    output reg timeout_o,
-    input wire timeout_clear,
     input wire pc_finish,
     input wire stall_i,
     input wire page_i,
     output reg [DATA_WIDTH-1:0] time_l,
-    output reg [DATA_WIDTH-1:0] time_h
+    output reg [DATA_WIDTH-1:0] time_h,
+    output reg [DATA_WIDTH-1:0] mip_in,
+    output reg mip_we
 );
 
 typedef enum logic [1:0] {
@@ -38,11 +38,11 @@ reg [DATA_WIDTH-1:0] mtime_h;
 reg [DATA_WIDTH-1:0] mtimecmp_l;
 reg [DATA_WIDTH-1:0] mtimecmp_h;
 reg MTIP;
-logic timeout;
 
 assign time_l = mtime_l;
 assign time_h = mtime_h;
-assign timeout_o = timeout;
+assign mip_in = {24'b0,MTIP,7'b0};
+assign mip_we = 1'b1;
 
 always_ff @(posedge clk_i)begin
   if(rst_i)begin
@@ -51,32 +51,6 @@ always_ff @(posedge clk_i)begin
   else begin
     state <= nextstate;
   end
-end
-
-
-always_comb begin
-  if(rst_i)begin
-    timeout = '0;
-  end
-  else if(mtimecmp_h == '0 && mtimecmp_l == '0) begin
-    timeout = '0;
-  end
-  else begin
-    if(mtime_h > mtimecmp_h) begin
-      timeout = !MTIP;
-    end
-    else if(mtime_h == mtimecmp_h) begin
-      if(mtime_l >= mtimecmp_l) begin
-        timeout = !MTIP;
-      end
-      else begin
-        timeout = '0;
-      end
-    end
-    else begin
-      timeout = '0;
-    end
-end
 end
 
 always_comb begin
