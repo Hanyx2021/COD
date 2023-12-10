@@ -1,5 +1,7 @@
 /* =================== EXE SEG ===============*/
-module SEG_EXE(
+module SEG_EXE #(
+  parameter csr_we = 1
+) (
   input wire clk_i,
   input wire rst_i,
 
@@ -38,8 +40,6 @@ module SEG_EXE(
   output reg mcause_we,
   output reg [31:0] mcause_in,
   (* DONT_TOUCH = "1" *) input wire [31:0] mcause_out,
-  output reg mip_we,
-  output reg [31:0] mip_in,
   (* DONT_TOUCH = "1" *) input wire [31:0] mip_out,
   output reg satp_we,
   output reg [31:0] satp_in,
@@ -84,8 +84,6 @@ module SEG_EXE(
   output reg [1:0] mode_in,
   (* DONT_TOUCH = "1" *) input wire [1:0] mode_out,
   input wire [3:0] id_error_code,
-  input wire timeout_i,
-  output reg timeout_clear,
 
   output reg [31:0] wbm2_adr_o,
   input  wire [31:0] wbm2_dat_i,
@@ -121,7 +119,6 @@ module SEG_EXE(
 logic [31:0] instr;
 logic [31:0] pc;
 logic [31:0] old_pc;
-logic csr_we;
 logic [31:0] a_data_reg;
 logic [31:0] b_data_reg;
 logic [31:0] alu_reg;
@@ -132,24 +129,15 @@ logic [31:0] pp;
 logic [3:0] page_error;
 logic use_page;
 logic exe_finish;
+logic [31:0] imm; //用于进行无符号的计算
 
 always_ff @(posedge clk_i)begin
-if(rst_i)begin
-  old_pc <= 32'b0;
-  csr_we <= 'b0;
-end
-else begin
-  old_pc <= pc_in;
-  if(csr_we == 'b1) begin
-    csr_we <= 'b0;
-  end
-  else if(old_pc != pc) begin
-    csr_we <= 'b1;
+  if(rst_i)begin
+    old_pc <= 32'b0;
   end
   else begin
-    csr_we <= 'b0;
+    old_pc <= pc_in;
   end
-end
 end
 
 typedef enum logic [3:0] {
@@ -358,8 +346,6 @@ always_comb begin
   mepc_in = 'b0;
   mcause_we = 'b0;
   mcause_in = 'b0;
-  mip_we = 'b0;
-  mip_in = 'b0;
   satp_we = 'b0;
   satp_in = 'b0;
   mhartid_we = 'b0;
@@ -389,6 +375,7 @@ always_comb begin
   mode_we = 'b0;
   mode_in = 2'b11;
   csr_out = 'b0;
+  imm = 'b0;
   if(instr[31:25] == 7'b0001001 && instr[14:0] == 15'b1110011) begin  // set SFENCE.VMA-related output
     tlb_flush_o = 1;
     if(|instr[19:15]) begin
@@ -409,12 +396,10 @@ always_comb begin
     branch_o = 1'b0;
   end
   if(instr == 32'b0) begin                          // bubble
-    timeout_clear = 1'b0;
     mstatus_we = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
-    mip_we = 1'b0;
     satp_we = 1'b0;
     mepc_we = 1'b0;
     mcause_we = 1'b0;
@@ -433,44 +418,111 @@ always_comb begin
     mode_we = 1'b0;
     branch_o = 1'b0;
   end
-  else if(timeout_i && mode_out == 2'b00 && instr != 32'b0) begin        // timeout
-    timeout_clear = 1'b1;
-    mstatus_we = 1'b0;
+  else if(mip_out[7] && mie_out[7] && (mstatus_out[3] || mode_out < 2'b11)) begin        // M-mode timeout
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
-    mip_we = 1'b0;
     satp_we = 1'b0;
     mhartid_we = 'b0;
     mideleg_we = 'b0;
     medeleg_we = 'b0;
     mtval_we = 'b0;
-    sstatus_we = 'b0;
-    sepc_we = 'b0;
-    scause_we = 'b0;
+    mepc_we = 'b0;
+    mcause_we = 'b0;
     stval_we = 'b0;
     stvec_we = 'b0;
     sscratch_we = 'b0;
     sie_we = 'b0;
     sip_we = 'b0;
+    mie_we = 'b0;
 
-    mcause_we = csr_we;
-    mcause_in = {1'b1,31'b0111};
+    if(mideleg_out[5]) begin
+      mcause_we = 'b0;
+      scause_we = csr_we;
+      scause_in = {1'b1,31'b0111};
 
-    mepc_we = csr_we;
-    mepc_in = pc;
+      mepc_we = 'b0;
+      sepc_we = csr_we;
+      sepc_in = pc;
+
+      mstatus_we = csr_we;
+      mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+      sstatus_we = csr_we;
+      sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+
+      if(stvec_out[0] == 'b0)
+        pc_branch = {stvec_out[31:2],2'b00};
+      else
+        pc_branch = {stvec_out[31:2],2'b00} + scause_in << 2 ;
+
+      mode_we = 1;
+      mode_in = 2'b01;
+      branch_o = 1'b1;
+    end
+    else begin
+      scause_we = 'b0;
+      mcause_we = csr_we;
+      mcause_in = {1'b1,31'b0111};
+
+      sepc_we = 'b0;
+      mepc_we = csr_we;
+      mepc_in = pc;
+
+      mstatus_we = csr_we;
+      mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
+      sstatus_we = 'b0;
+
+      if(mtvec_out[0] == 'b0)
+        pc_branch = {mtvec_out[31:2],2'b00};
+      else
+        pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2;
+
+      mode_we = 1;
+      mode_in = 2'b11;
+      branch_o = 1'b1;
+    end
+  end
+  else if(mip_out[5] && mie_out[5] && (mode_out == 2'b01 && mstatus_out[1] || mode_out < 2'b01)) begin        // S-mode timeout
+    mie_we = 1'b0;
+    mtvec_we = 1'b0;
+    mscratch_we = 1'b0;
+    satp_we = 1'b0;
+    mhartid_we = 'b0;
+    mideleg_we = 'b0;
+    medeleg_we = 'b0;
+    mtval_we = 'b0;
+    mepc_we = 'b0;
+    mcause_we = 'b0;
+    stval_we = 'b0;
+    stvec_we = 'b0;
+    sscratch_we = 'b0;
+    sie_we = 'b0;
+    sip_we = 'b0;
+    mie_we = 'b0;
+
+    mcause_we = 'b0;
+    scause_we = csr_we;
+    scause_in = {1'b1,31'b0111};
+
+    mepc_we = 'b0;
+    sepc_we = csr_we;
+    sepc_in = pc;
+
+    mstatus_we = csr_we;
+    mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+    sstatus_we = csr_we;
+    sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+
+    if(stvec_out[0] == 'b0)
+      pc_branch = {stvec_out[31:2],2'b00};
+    else
+      pc_branch = {stvec_out[31:2],2'b00} + scause_in << 2;
 
     mode_we = 1;
-    mode_in = 2'b11;
-
-    if(mtvec_out[0] == 'b0)
-      pc_branch = {mtvec_out[31:2],2'b00};
-    else
-      pc_branch = {mtvec_out[31:2],2'b00} + mcause_in << 2 ;
+    mode_in = 2'b01;
     branch_o = 1'b1;
   end
   else if (!(|id_error_code) && !(|page_error)) begin   // no error / page-fault
-    timeout_clear = 1'b0;
     if(instr_type == 7'b1110011)begin
       if(instr[14:12] != 3'b000 && instr[14:12] != 3'b100) begin
         case(instr[14:12])
@@ -516,7 +568,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -542,7 +593,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -568,7 +618,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -594,7 +643,6 @@ always_comb begin
             mscratch_we = csr_we;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -620,7 +668,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = csr_we;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -646,33 +693,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = csr_we;
-            mip_we = 1'b0;
-            satp_we = 1'b0;
-            mode_we = 1'b0;
-            mhartid_we = 'b0;
-            mideleg_we = 'b0;
-            medeleg_we = 'b0;
-            mtval_we = 'b0;
-            sstatus_we = 'b0;
-            sepc_we = 'b0;
-            scause_we = 'b0;
-            stval_we = 'b0;
-            stvec_we = 'b0;
-            sscratch_we = 'b0;
-            sie_we = 'b0;
-            sip_we = 'b0;
-          end
-          12'b0011_0100_0100:
-          begin
-            //mip
-            mip_in = csr_out;
-            mstatus_we = 1'b0;
-            mie_we = 1'b0;
-            mtvec_we = 1'b0;
-            mscratch_we = 1'b0;
-            mepc_we = 1'b0;
-            mcause_we = 1'b0;
-            mip_we = csr_we;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -698,7 +718,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = csr_we;
             mode_we = 1'b0;
             mhartid_we = 'b0;
@@ -724,7 +743,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = csr_we;
@@ -750,7 +768,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -776,7 +793,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -802,7 +818,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -828,7 +843,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -854,7 +868,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -880,7 +893,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -906,7 +918,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -932,7 +943,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -958,7 +968,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -984,7 +993,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -1010,7 +1018,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -1033,7 +1040,6 @@ always_comb begin
             mscratch_we = 1'b0;
             mepc_we = 1'b0;
             mcause_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mode_we = 1'b0;
             mhartid_we = 1'b0;
@@ -1057,7 +1063,6 @@ always_comb begin
         mscratch_we = 1'b0;
         mepc_we = 1'b0;
         mcause_we = 1'b0;
-        mip_we = 1'b0;
         satp_we = 1'b0;
         mhartid_we = 'b0;
         mideleg_we = 'b0;
@@ -1087,7 +1092,6 @@ always_comb begin
         mscratch_we = 1'b0;
         mepc_we = 1'b0;
         mcause_we = 1'b0;
-        mip_we = 1'b0;
         satp_we = 1'b0;
         mhartid_we = 'b0;
         mideleg_we = 'b0;
@@ -1117,7 +1121,6 @@ always_comb begin
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
-        mip_we = 1'b0;
         satp_we = 1'b0;
         mhartid_we = 'b0;
         mideleg_we = 'b0;
@@ -1129,66 +1132,50 @@ always_comb begin
         sie_we = 'b0;
         sip_we = 'b0;
 
-        if(mode_out == 2'b00) begin
-          scause_we = csr_we;
+        if(medeleg_out[3]) begin
           mcause_we = 'b0;
-          scause_in = 8;
+          scause_we = csr_we;
+          case(mode_out)
+            2'b00: scause_in = 8;
+            2'b01: scause_in = 9;
+            2'b11: scause_in = 11;
+          endcase
+          sepc_we = csr_we;
+          mepc_we = 'b0;
+          sepc_in = pc;
+          mode_we = 1'b1;
+          mode_in = 2'b01;
+          pc_branch = {stvec_out[31:2],2'b00};
+          mstatus_we = csr_we;
+          mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+          sstatus_we = csr_we;
+          sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
         end
         else begin
           scause_we = 'b0;
           mcause_we = csr_we;
           case(mode_out)
+            2'b00: mcause_in = 8;
             2'b01: mcause_in = 9;
             2'b11: mcause_in = 11;
           endcase
-        end
-
-        if(mode_out == 2'b00) begin
-          sepc_we = csr_we;
-          mepc_we = 'b0;
-          sepc_in = pc;
-        end
-        else begin
           sepc_we = 'b0;
           mepc_we = csr_we;
           mepc_in = pc;
-        end
-
-
-        mode_we = 1'b1;
-        case(mode_out)
-          2'b00:mode_in = 2'b01;
-          2'b01:mode_in = 2'b11;
-        endcase
-
-        mstatus_we = csr_we;
-        case(mode_out)
-          2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
-          2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
-          2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
-        endcase
-
-        if(mode_out == 2'b00) begin
-          sstatus_we = csr_we;
-          sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
-        end
-        else begin
+          mode_we = 1'b1;
+          mode_in = 2'b11;
+          pc_branch = {mtvec_out[31:2],2'b00};
+          mstatus_we = csr_we;
+          mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
           sstatus_we = 'b0;
         end
 
-        if(mode_out == 2'b00) begin
-          pc_branch = {stvec_out[31:2],2'b00};
-        end
-        else begin
-          pc_branch = {mtvec_out[31:2],2'b00};
-        end
         branch_o = 1'b1;
       end
       else if(instr == 32'b00000000000100000000000001110011) begin  // EBREAK
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
-        mip_we = 1'b0;
         satp_we = 1'b0;
         mhartid_we = 'b0;
         mideleg_we = 'b0;
@@ -1200,63 +1187,43 @@ always_comb begin
         sie_we = 'b0;
         sip_we = 'b0;
 
-        if(mode_out == 2'b00) begin
+        if(medeleg_out[3]) begin
           scause_we = csr_we;
           mcause_we = 'b0;
           scause_in = 3;
+          sepc_we = csr_we;
+          mepc_we = 'b0;
+          sepc_in = pc;
+          mode_we = 1'b1;
+          mode_in = 2'b01;
+          pc_branch = {stvec_out[31:2],2'b00};
+          mstatus_we = csr_we;
+          mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+          sstatus_we = csr_we;
+          sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
         end
         else begin
           scause_we = 'b0;
           mcause_we = csr_we;
           mcause_in = 3;
-        end
-
-        if(mode_out == 2'b00) begin
-          sepc_we = csr_we;
-          mepc_we = 'b0;
-          sepc_in = pc;
-        end
-        else begin
           sepc_we = 'b0;
           mepc_we = csr_we;
           mepc_in = pc;
-        end
-
-
-        mode_we = 1'b1;
-        case(mode_out)
-          2'b00:mode_in = 2'b01;
-          2'b01:mode_in = 2'b11;
-        endcase
-
-        mstatus_we = csr_we;
-        case(mode_out)
-          2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
-          2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
-          2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
-        endcase
-
-        if(mode_out == 2'b00) begin
-          sstatus_we = csr_we;
-          sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
-        end
-        else begin
+          mode_we = 1'b1;
+          mode_in = 2'b11;
+          pc_branch = {mtvec_out[31:2],2'b00};
+          mstatus_we = csr_we;
+          mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
           sstatus_we = 'b0;
         end
 
-        if(mode_out == 2'b00) begin
-          pc_branch = {stvec_out[31:2],2'b00};
-        end
-        else begin
-          pc_branch = {mtvec_out[31:2],2'b00};
-        end
         branch_o = 1'b1;
+
       end
       else if(instr[31:25] == 7'b0001001 && instr[14:7] == 8'b0000_0000) begin   // SFENCE.VMA
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
-        mip_we = 1'b0;
         satp_we = 1'b0;
         mhartid_we = 'b0;
         mideleg_we = 'b0;
@@ -1287,7 +1254,6 @@ always_comb begin
       mscratch_we = 1'b0;
       mepc_we = 1'b0;
       mcause_we = 1'b0;
-      mip_we = 1'b0;
       satp_we = 1'b0;
       mode_we = 1'b0;
       mhartid_we = 'b0;
@@ -1325,7 +1291,6 @@ always_comb begin
             mie_we = 1'b0;
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mhartid_we = 'b0;
             mideleg_we = 'b0;
@@ -1337,56 +1302,38 @@ always_comb begin
             sie_we = 'b0;
             sip_we = 'b0;
 
-            if(mode_out == 2'b00) begin
+            if(medeleg_out[3]) begin
               scause_we = csr_we;
               mcause_we = 'b0;
               scause_in = 4'h0;
+              sepc_we = csr_we;
+              mepc_we = 'b0;
+              sepc_in = pc;
+              mode_we = 1'b1;
+              mode_in = 2'b01;
+              pc_branch = {stvec_out[31:2],2'b00};
+              mstatus_we = csr_we;
+              mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+              sstatus_we = csr_we;
+              sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
             end
             else begin
               scause_we = 'b0;
               mcause_we = csr_we;
               mcause_in = 4'h0;
-            end
-
-            if(mode_out == 2'b00) begin
-              sepc_we = csr_we;
-              mepc_we = 'b0;
-              sepc_in = pc;
-            end
-            else begin
               sepc_we = 'b0;
               mepc_we = csr_we;
               mepc_in = pc;
-            end
-
-            mode_we = 1'b1;
-            case(mode_out)
-              2'b00:mode_in = 2'b01;
-              2'b01:mode_in = 2'b11;
-            endcase
-
-            mstatus_we = csr_we;
-            case(mode_out)
-              2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
-              2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
-              2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
-            endcase
-
-            if(mode_out == 2'b00) begin
-              sstatus_we = csr_we;
-              sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
-            end
-            else begin
+              mode_we = 1'b1;
+              mode_in = 2'b11;
+              pc_branch = {mtvec_out[31:2],2'b00};
+              mstatus_we = csr_we;
+              mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
               sstatus_we = 'b0;
             end
 
-            if(mode_out == 2'b00) begin
-              pc_branch = {stvec_out[31:2],2'b00};
-            end
-            else begin
-              pc_branch = {mtvec_out[31:2],2'b00};
-            end
             branch_o = 1'b1;
+
           end
         end
         7'b1100111:                     // JALR
@@ -1403,7 +1350,6 @@ always_comb begin
             mie_we = 1'b0;
             mtvec_we = 1'b0;
             mscratch_we = 1'b0;
-            mip_we = 1'b0;
             satp_we = 1'b0;
             mhartid_we = 'b0;
             mideleg_we = 'b0;
@@ -1415,56 +1361,38 @@ always_comb begin
             sie_we = 'b0;
             sip_we = 'b0;
 
-            if(mode_out == 2'b00) begin
+            if(medeleg_out[3]) begin
               scause_we = csr_we;
               mcause_we = 'b0;
               scause_in = 4'h0;
+              sepc_we = csr_we;
+              mepc_we = 'b0;
+              sepc_in = pc;
+              mode_we = 1'b1;
+              mode_in = 2'b01;
+              pc_branch = {stvec_out[31:2],2'b00};
+              mstatus_we = csr_we;
+              mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+              sstatus_we = csr_we;
+              sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
             end
             else begin
               scause_we = 'b0;
               mcause_we = csr_we;
               mcause_in = 4'h0;
-            end
-
-            if(mode_out == 2'b00) begin
-              sepc_we = csr_we;
-              mepc_we = 'b0;
-              sepc_in = pc;
-            end
-            else begin
               sepc_we = 'b0;
               mepc_we = csr_we;
               mepc_in = pc;
-            end
-
-            mode_we = 1'b1;
-            case(mode_out)
-              2'b00:mode_in = 2'b01;
-              2'b01:mode_in = 2'b11;
-            endcase
-
-            mstatus_we = csr_we;
-            case(mode_out)
-              2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
-              2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
-              2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
-            endcase
-
-            if(mode_out == 2'b00) begin
-              sstatus_we = csr_we;
-              sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
-            end
-            else begin
+              mode_we = 1'b1;
+              mode_in = 2'b11;
+              pc_branch = {mtvec_out[31:2],2'b00};
+              mstatus_we = csr_we;
+              mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
               sstatus_we = 'b0;
             end
 
-            if(mode_out == 2'b00) begin
-              pc_branch = {stvec_out[31:2],2'b00};
-            end
-            else begin
-              pc_branch = {mtvec_out[31:2],2'b00};
-            end
             branch_o = 1'b1;
+
           end
         end
         7'b1100011:
@@ -1490,9 +1418,87 @@ always_comb begin
                 branch_o = 1'b0;
               end
             end
+            3'b100:                 // BLT
+            begin
+              if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
+                if(a_data_reg < b_data_reg) begin
+                  pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                  branch_o = 1'b1;
+                end
+                else begin
+                  branch_o = 1'b0;
+                end
+              end
+              else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
+                pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                branch_o = 1'b1;
+              end
+              else begin
+                branch_o = 1'b0;
+              end
+            end
+            // BLTU
+            3'b110:
+            begin
+              if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) ||  (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
+                if(a_data_reg < b_data_reg) begin
+                  pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                  branch_o = 1'b1;
+                end
+                else begin
+                  branch_o = 1'b0;
+                end
+              end
+              else if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b1) begin
+                pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                branch_o = 1'b1;
+              end
+              else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
+                branch_o = 1'b0;
+              end
+            end
+            3'b101:                 // BGE
+            begin
+              if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
+                if(a_data_reg >= b_data_reg) begin
+                  pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                  branch_o = 1'b1;
+                end
+                else begin
+                  branch_o = 1'b0;
+                end
+              end
+              else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
+                branch_o = 1'b0;
+              end
+              else if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b1) begin
+                pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                branch_o = 1'b1;
+              end
+            end
+            // BGEU
+            3'b111:
+            begin
+              if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1)) begin
+                if(a_data_reg >= b_data_reg) begin
+                  pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                  branch_o = 1'b1;
+                end
+                else begin
+                  branch_o = 1'b0;
+                end
+              end
+              else if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b1) begin
+                branch_o = 1'b0;
+              end
+              else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0) begin
+                pc_branch = instr[31] ? pc + {19'b1111_1111_1111_1111_111,instr[31],instr[7],instr[30:25],instr[11:8],1'b0} : pc + {19'b0000_0000_0000_0000_000,instr[31],instr[7],instr[30:25],instr[11:8],1'b0};
+                branch_o = 1'b1;
+              end
+            end
           endcase
         end
-        7'b0000011:                     // LB,LW
+        7'b0000011:                     // LB,LW,LH,LBU,LHU,LWU
         begin
           alu_a = a_data_reg;
           alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
@@ -1507,9 +1513,13 @@ always_comb begin
           addr_reg = alu_y;
           if(instr[14:12] == 3'b000)     // SB
           begin
-            alu_reg = b_data_reg[7:0];
+            alu_reg = b_data_reg;
           end
           else if(instr[14:12] == 3'b010)  // SW
+          begin
+            alu_reg = b_data_reg;
+          end
+          else if (instr[14:12] == 3'b001)  // SH
           begin
             alu_reg = b_data_reg;
           end
@@ -1529,6 +1539,12 @@ always_comb begin
               alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
               alu_op = 4'b0100;
             end
+            // XORI
+            3'b100:
+            begin
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0101;
+            end
             3'b111:                       // ANDI
             begin
               alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
@@ -1543,6 +1559,39 @@ always_comb begin
             begin
               alu_b = instr[25] ? 6'b00000 : instr[25:20];
               alu_op = 4'b1000;
+            end
+            // SRAI
+            3'b101:
+            begin
+              alu_b = instr[25] ? 6'b00000 : instr[25:20];
+              alu_op = 4'b1001;
+            end
+            // SLTI
+            3'b010:
+            begin
+              alu_b = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              alu_op = 4'b0010;
+            end
+            // SLTIU
+            3'b011:
+            begin
+              imm = instr[31] ? {20'b1111_1111_1111_1111_1111,instr[31:20]} : {20'b0000_0000_0000_0000_0000,instr[31:20]};
+              if(a_data_reg[31] == 1'b0 && imm[31] == 1'b0)
+              begin
+                alu_reg = a_data_reg < imm;
+              end
+              else if(a_data_reg[31] == 1'b0 && imm[31] == 1'b1)
+              begin
+                alu_reg = 1'b1;
+              end
+              else if(a_data_reg[31] == 1'b1 && imm[31] == 1'b0)
+              begin
+                alu_reg = 1'b0;
+              end
+              else
+              begin
+                alu_reg = a_data_reg < imm;
+              end
             end
           endcase
         end
@@ -1572,6 +1621,21 @@ always_comb begin
             alu_op = 4'b0001;
             alu_reg = alu_y;
           end
+          // SUB
+          if (instr[14:12] == 3'b000 && instr[31:25] == 7'b0100000) begin
+            alu_a = a_data_reg;
+            alu_b = b_data_reg;
+            alu_op = 4'b0010;
+            alu_reg = alu_y;
+          end
+          // SRA
+          if (instr[14:12] == 3'b101 && instr[31:25] == 7'b0100000) begin
+            alu_a = a_data_reg;
+            alu_b = b_data_reg[4:0];
+            alu_op = 4'b1001;
+            alu_reg = alu_y;
+          end
+
           if (instr[14:12] == 3'b100 && instr[31:25] == 7'b0000101) begin  // MIN
             alu_a = a_data_reg;
             alu_b = b_data_reg;
@@ -1597,6 +1661,20 @@ always_comb begin
             alu_op = 4'b0100;
             alu_reg = alu_y;
           end
+          // SLL
+          if (instr[14:12] == 3'b001 && instr[31:25] == 7'b0000000) begin
+            alu_a = a_data_reg;
+            alu_b = b_data_reg[4:0];
+            alu_op = 4'b0111;
+            alu_reg = alu_y;
+          end
+          // SRL
+          if (instr[14:12] == 3'b101 && instr[31:25] == 7'b0000000) begin
+            alu_a = a_data_reg;
+            alu_b = b_data_reg[4:0];
+            alu_op = 4'b1000;
+            alu_reg = alu_y;
+          end
           if(instr[14:12] == 3'b011 && instr[31:25] == 7'b0000000) begin   // SLTU
             if(a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0)
             begin
@@ -1615,16 +1693,29 @@ always_comb begin
               alu_reg = a_data_reg < b_data_reg;
             end
           end
+          // SLT
+          if(instr[14:12] == 3'b010 && instr[31:25] == 7'b0000000) begin
+            if((a_data_reg[31] == 1'b0 && b_data_reg[31] == 1'b0) || (a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b1))
+            begin
+              alu_reg = a_data_reg < b_data_reg;
+            end
+            else if(a_data_reg[31] == 1'b1 && b_data_reg[31] == 1'b0)
+            begin
+              alu_reg = 1'b1;
+            end
+            else
+            begin
+              alu_reg = 1'b0;
+            end
+          end
         end
       endcase
     end
   end
   else begin                          // other errors
-    timeout_clear = 1'b0;
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
-    mip_we = 1'b0;
     satp_we = 1'b0;
     mhartid_we = 'b0;
     mideleg_we = 'b0;
@@ -1636,58 +1727,36 @@ always_comb begin
     sie_we = 'b0;
     sip_we = 'b0;
 
-    if(mode_out == 2'b00) begin
-      mcause_we = 1'b0;
-      scause_we = 1'b1;
+    if(medeleg_out[3]) begin
+      scause_we = csr_we;
+      mcause_we = 'b0;
       scause_in = use_page ? page_error : id_error_code;
-    end
-    else begin
-      scause_we = 1'b0;
-      mcause_we = 1'b1;
-      mcause_in = use_page ? page_error : id_error_code;
-    end
-
-
-    if(mode_out == 2'b00) begin
-      mepc_we = 1'b0;
-      sepc_we = 1'b1;
+      sepc_we = csr_we;
+      mepc_we = 'b0;
       sepc_in = pc;
-    end
-    else begin
-      sepc_we = 1'b0;
-      mepc_we = 1'b1;
-      mepc_in = pc;
-    end
-
-    mode_we = 1'b1;
-    case(mode_out)
-      2'b00:mode_in = 2'b01;
-      2'b01:mode_in = 2'b11;
-    endcase
-
-    mstatus_we = csr_we;
-    case(mode_out)
-      2'b00:mstatus_in = {old_mstatus[31:9],1'b0,old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
-      2'b01:mstatus_in = {old_mstatus[31:13],2'b01,old_mstatus[10:0]};
-      2'b11:mstatus_in = {old_mstatus[31:13],2'b11,old_mstatus[10:0]};
-    endcase
-
-    if(mode_out == 2'b00) begin
-      sstatus_we = csr_we;
-      sstatus_in = {old_sstatus[31:9],1'b0,old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
-    end
-    else begin
-      sstatus_we = 'b0;
-      sstatus_in = old_sstatus;
-    end
-
-
-    if(mode_out == 2'b00) begin
+      mode_we = 1'b1;
+      mode_in = 2'b01;
       pc_branch = {stvec_out[31:2],2'b00};
+      mstatus_we = csr_we;
+      mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
+      sstatus_we = csr_we;
+      sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
     end
     else begin
+      scause_we = 'b0;
+      mcause_we = csr_we;
+      mcause_in = use_page ? page_error : id_error_code;
+      sepc_we = 'b0;
+      mepc_we = csr_we;
+      mepc_in = pc;
+      mode_we = 1'b1;
+      mode_in = 2'b11;
       pc_branch = {mtvec_out[31:2],2'b00};
+      mstatus_we = csr_we;
+      mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
+      sstatus_we = 'b0;
     end
+
     branch_o = 1'b1;
   end
 end

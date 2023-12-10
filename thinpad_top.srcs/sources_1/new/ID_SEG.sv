@@ -87,31 +87,31 @@ always_comb begin
                 rs2 = 5'b0;
                 csr_out = 32'b0;
             end
-        7'b1100011:                     // BEQ,BNE
+        7'b1100011:                     // BEQ,BNE,BLT,BGE,BLTU,BGEU
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
                 csr_out = 32'b0;
             end
-        7'b0000011:                     // LB,LW
+        7'b0000011:                     // LB,LW,LH,LBU,LHU
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
                 csr_out = 32'b0;
             end
-        7'b0100011:                     // SB,SW
+        7'b0100011:                     // SB,SW,SH
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
                 csr_out = 32'b0;
             end
-        7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI
+        7'b0010011:                     // ADDI,ANDI,ORI,SLLI,SRLI,XORI,SRAI,SLTIU,SLTI
             begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
                 csr_out = 32'b0;
             end
-        7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU
+        7'b0110011:                    // ADD,AND,OR,XOR,MIN,SLTU,SUB,SRA,SRL,SLL,SLT
             begin
                 rs1 = instr[19:15];
                 rs2 = instr[24:20];
@@ -119,7 +119,12 @@ always_comb begin
             end
         7'b1110011:                    // CSRRC,CSRRS,CSRRW,ECALL,EBREAK,MRET
             begin
-              if (instr[14:12] != 3'b000) begin
+              if (instr == 32'h10500073) begin  // WFI, treat as illegal for debugging
+                rs1 = 5'b0;
+                rs2 = 5'b0;
+                error = 4'h2;
+              end
+              else if (instr[14:12] != 3'b000) begin
                 rs1 = instr[19:15];
                 rs2 = 5'b0;
               end

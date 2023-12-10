@@ -174,13 +174,11 @@ always_ff @(posedge clk_i) begin
     pte_o <= 32'b0;
   end
   else begin
-      if(!stall_i) begin
-        if(branch_i) begin
-          pc_next_reg <= pc_in;
-        end
-        else begin
-          pc_next_reg <= pc_now_reg + 4;
-        end
+      if(branch_i) begin
+        pc_next_reg <= pc_in;
+      end
+      else begin
+        pc_next_reg <= pc_now_reg + 4;
       end
       case(state)
         STATE_IDLE:begin
