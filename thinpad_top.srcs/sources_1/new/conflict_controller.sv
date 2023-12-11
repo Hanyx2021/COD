@@ -70,7 +70,7 @@ always_comb begin
     ifid_bubble_o = '1;
     ifid_stall_o = '0;
   end
-  else if(data_ack_i || pc_stall_i || exe_page_i) begin
+  else if(data_ack_i || exe_page_i) begin
     ifid_bubble_o = '0;
     ifid_stall_o = '1;
   end
@@ -93,7 +93,7 @@ always_comb begin
     idexe_stall_o = '0;
     exemem_stall_o = '0;
   end
-  if(data_ack_i || pc_stall_i || exe_page_i) begin
+  if(data_ack_i || exe_page_i) begin
     pc_ack_o = '1;
   end
   else begin

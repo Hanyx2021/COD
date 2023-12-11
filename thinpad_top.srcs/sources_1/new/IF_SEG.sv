@@ -11,6 +11,7 @@ module SEG_IF(
   output reg pc_finish,
   input wire exe_finish_i,            // '1' for EXE not finished yet
   input wire tlb_flush_i,             // '1' for TLB is being flushed
+  input wire stall_lb_nop_i,          // stall when bubble needed after an LB
 
   output reg [31:0] wbm0_adr_o,
   input  wire [31:0] wbm0_dat_i,
@@ -44,8 +45,9 @@ module SEG_IF(
 logic [31:0] pc_next_reg;
 logic [31:0] pc_now_reg;
 logic [3:0] error;
+logic [31:0] instr;
 
-typedef enum logic [3:0] {
+typedef enum logic [4:0] {
   STATE_IDLE = 0,
   PAGE_PRE = 1,
   WAIT_PTE_ADDR = 2,
@@ -53,7 +55,8 @@ typedef enum logic [3:0] {
   WAIT_VA = 4,
   ERROR_PRO = 5,
   STATE_READ = 6,
-  WAIT_FAULT = 7
+  WAIT_FAULT = 7,
+  WAIT_LW_NOP = 8
 } state_t;
 
 state_t state;
@@ -143,7 +146,7 @@ always_comb begin
     STATE_READ:begin
       pc_finish = 1'b1;
       if(wbm0_ack_i) begin
-        nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
+        nextstate = stall_lb_nop_i ? WAIT_LW_NOP : (exe_finish_i ? WAIT_FAULT : STATE_IDLE);
       end
       else begin
         nextstate = STATE_READ;
@@ -152,6 +155,10 @@ always_comb begin
     WAIT_FAULT: begin
       pc_finish = 1'b1;
       nextstate = exe_finish_i ? WAIT_FAULT : STATE_IDLE;
+    end
+    WAIT_LW_NOP: begin
+      pc_finish = 1'b0;
+      nextstate = stall_i ? (exe_finish_i ? WAIT_FAULT : STATE_IDLE) : WAIT_LW_NOP;
     end
     default: begin
       pc_finish = 1'b0;
@@ -257,16 +264,25 @@ always_ff @(posedge clk_i) begin
         end
         STATE_READ:begin
           if(wbm0_ack_i) begin
-            inst_out <= wbm0_dat_i;
+            instr <= wbm0_dat_i;
             wbm0_cyc_o <= 1'b0;
             wbm0_stb_o <= 1'b0;
-            pc_out <= pc_now_reg;
+            if(!stall_lb_nop_i) begin
+              pc_out <= pc_now_reg;
+              inst_out <= wbm0_dat_i;
+            end
           end
         end
         WAIT_FAULT:begin
           if(!stall_i) begin
             pc_now_reg <= pc_next_reg;
             error <= 4'b0;
+          end
+        end
+        WAIT_LW_NOP:begin
+          if(stall_i)begin
+            pc_out <= pc_now_reg;
+            inst_out <= instr;
           end
         end
       endcase
