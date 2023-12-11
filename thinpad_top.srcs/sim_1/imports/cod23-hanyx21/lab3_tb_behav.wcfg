@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="8888000fs"></ZoomStartTime>
-      <ZoomEndTime time="10220001fs"></ZoomEndTime>
-      <Cursor1Time time="9210000fs"></Cursor1Time>
+      <ZoomStartTime time="121954000fs"></ZoomStartTime>
+      <ZoomEndTime time="123492001fs"></ZoomEndTime>
+      <Cursor1Time time="122610000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="214"></NameColumnWidth>
-      <ValueColumnWidth column_width="193"></ValueColumnWidth>
+      <ValueColumnWidth column_width="183"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="20" />
+   <WVObjectSize size="18" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -68,6 +68,10 @@
       <obj_property name="ElementShortName">wbm1_dat_o[31:0]</obj_property>
       <obj_property name="ObjectShortName">wbm1_dat_o[31:0]</obj_property>
    </wvobject>
+   <wvobject fp_name="/tb/dut/seg_mem/data_out" type="array">
+      <obj_property name="ElementShortName">data_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[31:0]</obj_property>
+   </wvobject>
    <wvobject fp_name="/tb/dut/seg_mem/wbm1_dat_i" type="array">
       <obj_property name="ElementShortName">wbm1_dat_i[31:0]</obj_property>
       <obj_property name="ObjectShortName">wbm1_dat_i[31:0]</obj_property>
@@ -87,17 +91,5 @@
    <wvobject fp_name="/tb/dut/seg_mem/wbm1_ack_i" type="logic">
       <obj_property name="ElementShortName">wbm1_ack_i</obj_property>
       <obj_property name="ObjectShortName">wbm1_ack_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_err_i" type="logic">
-      <obj_property name="ElementShortName">wbm1_err_i</obj_property>
-      <obj_property name="ObjectShortName">wbm1_err_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_rty_i" type="logic">
-      <obj_property name="ElementShortName">wbm1_rty_i</obj_property>
-      <obj_property name="ObjectShortName">wbm1_rty_i</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb/dut/seg_mem/wbm1_cyc_o" type="logic">
-      <obj_property name="ElementShortName">wbm1_cyc_o</obj_property>
-      <obj_property name="ObjectShortName">wbm1_cyc_o</obj_property>
    </wvobject>
 </wave_config>
