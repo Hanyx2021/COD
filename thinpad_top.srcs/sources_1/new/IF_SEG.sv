@@ -12,6 +12,7 @@ module SEG_IF(
   input wire exe_finish_i,            // '1' for EXE not finished yet
   input wire tlb_flush_i,             // '1' for TLB is being flushed
   input wire stall_lb_nop_i,          // stall when bubble needed after an LB
+  input wire wait_mem_i,              // wait until bubble is inserted after LB
 
   output reg [31:0] wbm0_adr_o,
   input  wire [31:0] wbm0_dat_i,
@@ -158,7 +159,7 @@ always_comb begin
     end
     WAIT_LW_NOP: begin
       pc_finish = 1'b0;
-      nextstate = stall_i ? (exe_finish_i ? WAIT_FAULT : STATE_IDLE) : WAIT_LW_NOP;
+      nextstate = (stall_i && wait_mem_i) ? (exe_finish_i ? WAIT_FAULT : STATE_IDLE) : WAIT_LW_NOP;
     end
     default: begin
       pc_finish = 1'b0;
@@ -280,7 +281,7 @@ always_ff @(posedge clk_i) begin
           end
         end
         WAIT_LW_NOP:begin
-          if(stall_i)begin
+          if(stall_i && wait_mem_i)begin
             pc_out <= pc_now_reg;
             inst_out <= instr;
           end

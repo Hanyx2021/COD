@@ -794,6 +794,7 @@ logic [31:0] pc_branch;
 logic pc_branch_o;
 logic pc_stall_i;
 logic pc_finish;
+logic wait_mem_logic;
 logic [3:0] if_error_code;
 
   SEG_IF seg_if(
@@ -810,6 +811,7 @@ logic [3:0] if_error_code;
     .tlb_flush_i(tlb_flush),
     .error_code(if_error_code),
     .stall_lb_nop_i(pc_stall),
+    .wait_mem_i(wait_mem_logic),
 
     .wbm0_adr_o(wbm0_adr_o),
     .wbm0_dat_i(wbm0_dat_i),
@@ -858,8 +860,6 @@ logic [31:0] old_mstatus_in;
 logic [31:0] old_mstatus_out;
 logic [31:0] old_sstatus_in;
 logic [31:0] old_sstatus_out;
-
-logic wait_mem_logic;
 
   SEG_ID seg_id(
     .clk_i(sys_clk),
