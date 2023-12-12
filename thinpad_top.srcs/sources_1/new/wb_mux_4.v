@@ -172,7 +172,7 @@ assign wbm_rty_o = wbs0_rty_i |
                    wbs3_rty_i;
 
 // slave 0
-assign wbs0_adr_o = (wbm_adr_i & 31'h7fff_ffff);
+assign wbs0_adr_o = (wbm_adr_i & 31'h03ff_ffff);
 assign wbs0_dat_o = wbm_dat_i;
 assign wbs0_we_o = wbm_we_i & wbs0_sel;
 assign wbs0_sel_o = wbm_sel_i;
@@ -180,7 +180,7 @@ assign wbs0_stb_o = wbm_stb_i & wbs0_sel;
 assign wbs0_cyc_o = wbm_cyc_i & wbs0_sel;
 
 // slave 1
-assign wbs1_adr_o = (wbm_adr_i & 32'h7fff_bfff);
+assign wbs1_adr_o = (wbm_adr_i & 32'h03ff_fff);
 assign wbs1_dat_o = wbm_dat_i;
 assign wbs1_we_o = wbm_we_i & wbs1_sel;
 assign wbs1_sel_o = wbm_sel_i;
