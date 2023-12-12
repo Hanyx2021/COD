@@ -133,11 +133,11 @@ module PageTable(
                     end
                     else begin                              // flush entries of designated address
                         if(tlb[tlb_i0][0] && tlb[tlb_i0][39:25] == flush_addr_i[31:17]) begin
-                            tlb[tlb_i0][0] <= 32'b0;
+                            tlb[tlb_i0] <= 32'b0;
                             tlb_first_first[tlbi] <= 1;
                         end
                         if(tlb[tlb_i1][0] && tlb[tlb_i1][39:25] == flush_addr_i[31:17]) begin
-                            tlb[tlb_i1][0] <= 32'b0;
+                            tlb[tlb_i1] <= 32'b0;
                             tlb_first_first[tlbi] <= 0;
                         end
                     end
