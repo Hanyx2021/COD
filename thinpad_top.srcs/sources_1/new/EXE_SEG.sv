@@ -1741,7 +1741,7 @@ always_comb begin
       sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
       mtval_we = 'b0;
       stval_we = csr_we;
-      stval_in = va_o;
+      stval_in = use_page ? va_o : pc;
     end
     else begin
       scause_we = 'b0;
@@ -1757,7 +1757,7 @@ always_comb begin
       mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
       sstatus_we = 'b0;
       mtval_we = csr_we;
-      mtval_in = va_o;
+      mtval_in = use_page ? va_o : pc;
       stval_we = 'b0;
     end
 
