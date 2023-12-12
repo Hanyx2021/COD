@@ -19,6 +19,7 @@ module REG_IDEXE(
     input wire stall_i,
     input wire bubble_i,
     input wire pc_finish,
+    output reg wait_mem,
     input wire [31:0] csr_in,
     output wire [31:0] csr_out,
     input wire [31:0] mstatus_in,
@@ -72,7 +73,7 @@ always_comb begin
   else begin
     load_rd = 6'b000000;
   end
-  if ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)) || (load_rd2 != '0 && (load_rd2 == rs1 || load_rd2 == rs2))) begin
+  if ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2))) begin
     if_stall_o = 'b1;
   end
   else begin
@@ -90,10 +91,11 @@ always_ff @(posedge clk_i) begin
     csr <= '0;
     mstatus <= '0;
     sstatus <= '0;
+    wait_mem <= 0;
   end
-  else if(stall_i || pc_finish) begin
+  else if(stall_i || pc_finish || wait_mem) begin
   end
-  else if(bubble_i || ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)) || (load_rd2 != '0 && (load_rd2 == rs1 || load_rd2 == rs2)))) begin
+  else if(bubble_i || ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)))) begin
     pc <= '0;
     instr <= '0;
     a <= '0;
@@ -102,6 +104,12 @@ always_ff @(posedge clk_i) begin
     csr <= '0;
     mstatus <= '0;
     sstatus <= '0;
+    if(((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)))) begin
+      wait_mem <= 1;
+    end
+    else begin
+      wait_mem <= 0;
+    end
   end
   else begin
     pc <= pc_in;
@@ -112,6 +120,9 @@ always_ff @(posedge clk_i) begin
     csr <= csr_in;
     mstatus <= mstatus_in;
     sstatus <= sstatus_in;
+  end
+  if(stall_i) begin
+    wait_mem <= 0;
   end
 end
 

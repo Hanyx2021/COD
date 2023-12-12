@@ -822,6 +822,7 @@ logic [31:0] pc_branch;
 logic pc_branch_o;
 logic pc_stall_i;
 logic pc_finish;
+logic wait_mem_logic;
 logic [3:0] if_error_code;
 
   SEG_IF seg_if(
@@ -837,6 +838,8 @@ logic [3:0] if_error_code;
     .exe_finish_i(exe_finish),
     .tlb_flush_i(tlb_flush),
     .error_code(if_error_code),
+    .stall_lb_nop_i(pc_stall),
+    .wait_mem_i(wait_mem_logic),
 
     .wbm0_adr_o(wbm0_adr_o),
     .wbm0_dat_i(wbm0_dat_i),
@@ -1140,6 +1143,7 @@ logic [31:0] csr_exe;
     .stall_i(ifid_stall),
     .bubble_i(ifid_bubble),
     .pc_finish(pc_finish),
+    .stall_lb_nop_i(pc_stall),
     .if_error_code(if_error_code),
     .id_error_code(ifid_error_code)
   );
@@ -1163,6 +1167,7 @@ logic [31:0] csr_exe;
     .stall_i(idexe_stall),
     .bubble_i(idexe_bubble),
     .pc_finish(pc_finish),
+    .wait_mem(wait_mem_logic),
     .csr_in(csr_id),
     .csr_out(csr_exe),
     .mstatus_in(old_mstatus_in),
@@ -1188,6 +1193,7 @@ logic [31:0] csr_exe;
     .exemem_rd(exemem_rd),
     .stall_i(exemem_stall),
     .bubble_i(exemem_bubble),
+    .wait_mem_i(wait_mem_logic),
     .pc_finish(pc_finish)
   );
 
@@ -1202,6 +1208,7 @@ logic [31:0] csr_exe;
     .memwb_rd(memwb_rd),
     .stall_i(memwb_stall),
     .bubble_i(memwb_bubble),
+    .wait_mem_i(wait_mem_logic),
     .pc_finish(pc_finish)
 
   );

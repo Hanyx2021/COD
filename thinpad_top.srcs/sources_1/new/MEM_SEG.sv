@@ -65,7 +65,7 @@ always_comb begin
     else begin
       wbm1_sel_o = 4'b0000;
     end
-    if(state == STATE_IDLE) begin
+    if(pc != pc_in) begin
       if(instr_type == 7'b0000011) begin
         load_rd = inst_in[11:7];
       end

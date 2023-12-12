@@ -130,6 +130,7 @@ logic [3:0] page_error;
 logic use_page;
 logic exe_finish;
 logic [31:0] imm; //用于进行无符号的计算
+logic [3:0] exception_code;   // exception code including previous exceptions, page-fault, ECALL, and EBREAK
 
 always_ff @(posedge clk_i)begin
   if(rst_i)begin
@@ -376,6 +377,7 @@ always_comb begin
   mode_in = 2'b11;
   csr_out = 'b0;
   imm = 'b0;
+  exception_code = 32'b0;
   if(instr[31:25] == 7'b0001001 && instr[14:0] == 15'b1110011) begin  // set SFENCE.VMA-related output
     tlb_flush_o = 1;
     if(|instr[19:15]) begin
@@ -1118,6 +1120,8 @@ always_comb begin
         branch_o = 1'b1;
       end
       else if(instr == 32'b0000_0000_0000_0000_0000_0000_0111_0011) begin  // ECALL
+        exception_code = {2'b10, mode_out};
+
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
@@ -1132,14 +1136,10 @@ always_comb begin
         sie_we = 'b0;
         sip_we = 'b0;
 
-        if(medeleg_out[3]) begin
+        if(medeleg_out[exception_code]) begin
           mcause_we = 'b0;
           scause_we = csr_we;
-          case(mode_out)
-            2'b00: scause_in = 8;
-            2'b01: scause_in = 9;
-            2'b11: scause_in = 11;
-          endcase
+          scause_in = exception_code;
           sepc_we = csr_we;
           mepc_we = 'b0;
           sepc_in = pc;
@@ -1154,11 +1154,7 @@ always_comb begin
         else begin
           scause_we = 'b0;
           mcause_we = csr_we;
-          case(mode_out)
-            2'b00: mcause_in = 8;
-            2'b01: mcause_in = 9;
-            2'b11: mcause_in = 11;
-          endcase
+          mcause_in = exception_code;
           sepc_we = 'b0;
           mepc_we = csr_we;
           mepc_in = pc;
@@ -1173,6 +1169,8 @@ always_comb begin
         branch_o = 1'b1;
       end
       else if(instr == 32'b00000000000100000000000001110011) begin  // EBREAK
+        exception_code = 4'd3;
+
         mie_we = 1'b0;
         mtvec_we = 1'b0;
         mscratch_we = 1'b0;
@@ -1713,6 +1711,8 @@ always_comb begin
     end
   end
   else begin                          // other errors
+    exception_code = use_page ? page_error : id_error_code;
+
     mie_we = 1'b0;
     mtvec_we = 1'b0;
     mscratch_we = 1'b0;
@@ -1720,17 +1720,15 @@ always_comb begin
     mhartid_we = 'b0;
     mideleg_we = 'b0;
     medeleg_we = 'b0;
-    mtval_we = 'b0;
-    stval_we = 'b0;
     stvec_we = 'b0;
     sscratch_we = 'b0;
     sie_we = 'b0;
     sip_we = 'b0;
 
-    if(medeleg_out[3]) begin
+    if(medeleg_out[exception_code]) begin
       scause_we = csr_we;
       mcause_we = 'b0;
-      scause_in = use_page ? page_error : id_error_code;
+      scause_in = exception_code;
       sepc_we = csr_we;
       mepc_we = 'b0;
       sepc_in = pc;
@@ -1741,11 +1739,14 @@ always_comb begin
       mstatus_in = {old_mstatus[31:9],mode_out[0],old_mstatus[7:6],old_mstatus[1],old_mstatus[4:2],1'b0,old_mstatus[0]};
       sstatus_we = csr_we;
       sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
+      mtval_we = 'b0;
+      stval_we = csr_we;
+      stval_in = va_o;
     end
     else begin
       scause_we = 'b0;
       mcause_we = csr_we;
-      mcause_in = use_page ? page_error : id_error_code;
+      mcause_in = exception_code;
       sepc_we = 'b0;
       mepc_we = csr_we;
       mepc_in = pc;
@@ -1755,6 +1756,9 @@ always_comb begin
       mstatus_we = csr_we;
       mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
       sstatus_we = 'b0;
+      mtval_we = csr_we;
+      mtval_in = va_o;
+      stval_we = 'b0;
     end
 
     branch_o = 1'b1;
