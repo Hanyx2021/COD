@@ -44,7 +44,7 @@ always_comb begin
     if(instr[14:12] == 3'b010) begin
       wbm1_sel_o = 4'b1111;                  // LW,SW
     end
-    else if(instr[14:12] == 3'b000) begin    // LB,SB,LBU
+    else if(instr[13:12] == 2'b00) begin    // LB,SB,LBU
       if(instr[6:0] == 7'b0000011)                      // LB,LBU
       begin
         wbm1_sel_o = 4'b1111;
@@ -53,7 +53,7 @@ always_comb begin
         wbm1_sel_o = 4'b1 << (raddr_in & 32'h3);     // SB
       end
     end
-    else if (instr[14:12] == 3'b001) begin   // LH,SH,LHU
+    else if (instr[13:12] == 2'b01) begin   // LH,SH,LHU
       if(instr[6:0] == 7'b0000011)                      // LH,LHU
       begin
         wbm1_sel_o = 4'b1111;
@@ -61,6 +61,9 @@ always_comb begin
       else begin
         wbm1_sel_o = 4'b11 << (raddr_in & 32'h2);    // SH
       end
+    end
+    else begin
+      wbm1_sel_o = 4'b0000;
     end
     if(state == STATE_IDLE) begin
       if(instr_type == 7'b0000011) begin
@@ -188,7 +191,7 @@ always_comb begin
               data_out <= wbm1_dat_i; 
             end
             else if (instr[14:12] == 3'b000) begin // LB
-              case(wbm1_adr_o[1:0])
+              case(raddr_in[1:0])
                   2'b00: begin data_out[7:0] <= wbm1_dat_i[7:0]; data_out[31:8] <= {24{wbm1_dat_i[7]}};end
                   2'b01: begin data_out[7:0] <= wbm1_dat_i[15:8]; data_out[31:8] <= {24{wbm1_dat_i[15]}};end
                   2'b10: begin data_out[7:0] <= wbm1_dat_i[23:16]; data_out[31:8] <= {24{wbm1_dat_i[23]}};end
@@ -196,8 +199,8 @@ always_comb begin
               endcase
             end
             // LBU
-            else if (instr[14:12] == 3'b000) begin
-              case(wbm1_adr_o[1:0])
+            else if (instr[14:12] == 3'b100) begin
+              case(raddr_in[1:0])
                   2'b00: data_out <= {24'b0,wbm1_dat_i[7:0]};
                   2'b01: data_out <= {24'b0,wbm1_dat_i[15:8]};
                   2'b10: data_out <= {24'b0,wbm1_dat_i[23:16]};
@@ -206,14 +209,14 @@ always_comb begin
             end
             // LH
             else if (instr[14:12] == 3'b001) begin
-              case(wbm1_adr_o[1])
+              case(raddr_in[1])
                   1'b0: begin data_out[15:0] <= wbm1_dat_i[15:0]; data_out[31:16] <= {16{wbm1_dat_i[15]}};end
                   1'b1: begin data_out[15:0] <= wbm1_dat_i[31:16]; data_out[31:16] <= {16{wbm1_dat_i[31]}};end
               endcase
             end
             // LHU
-            else if (instr[14:12] == 3'b001) begin
-              case(wbm1_adr_o[1])
+            else if (instr[14:12] == 3'b101) begin
+              case(raddr_in[1])
                   1'b0: data_out <= {16'b0,wbm1_dat_i[15:0]};
                   1'b1: data_out <= {16'b0,wbm1_dat_i[31:16]};
               endcase
