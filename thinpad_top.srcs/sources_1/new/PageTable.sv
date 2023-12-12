@@ -207,7 +207,7 @@ module PageTable(
                     pte_please_o = 0;
                     fault_code_o = 4'd0;
                     fault_o = 0;
-                    nextstate = flush_i ? STATE_FLUSH : (req_i ? STATE_TLB : STATE_IDLE);
+                    nextstate = flush_i ? STATE_FLUSH : (req_i ? STATE_WAIT_1 : STATE_IDLE);
                 end
 
                 STATE_FLUSH: begin
@@ -217,7 +217,7 @@ module PageTable(
                     pte_please_o = 0;
                     fault_code_o = 4'd0;
                     fault_o = 0;
-                    nextstate = req_i ? STATE_TLB : STATE_FLUSH_DONE;
+                    nextstate = req_i ? STATE_WAIT_1 : STATE_FLUSH_DONE;
                 end
 
                 STATE_FLUSH_DONE: begin
@@ -227,7 +227,7 @@ module PageTable(
                     pte_please_o = 0;
                     fault_code_o = 4'd0;
                     fault_o = 0;
-                    nextstate = req_i ? STATE_TLB : STATE_FLUSH_DONE;
+                    nextstate = req_i ? STATE_WAIT_1 : STATE_FLUSH_DONE;
                 end
 
                 STATE_TLB: begin
