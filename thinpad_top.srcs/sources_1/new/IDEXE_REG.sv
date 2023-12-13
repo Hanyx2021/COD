@@ -95,7 +95,7 @@ always_ff @(posedge clk_i) begin
   end
   else if(stall_i || pc_finish || wait_mem) begin
   end
-  else if(bubble_i || ((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)))) begin
+  else if(bubble_i) begin
     pc <= '0;
     instr <= '0;
     a <= '0;
@@ -104,12 +104,18 @@ always_ff @(posedge clk_i) begin
     csr <= '0;
     mstatus <= '0;
     sstatus <= '0;
-    if(((load_rd != '0 && (load_rd == rs1 || load_rd == rs2)))) begin
-      wait_mem <= 1;
-    end
-    else begin
-      wait_mem <= 0;
-    end
+    wait_mem <= 0;
+  end
+  else if(load_rd != '0 && (load_rd == rs1 || load_rd == rs2)) begin
+    pc <= '0;
+    instr <= '0;
+    a <= '0;
+    b <= '0;
+    error_code <= '0;
+    csr <= '0;
+    mstatus <= '0;
+    sstatus <= '0;
+    wait_mem <= 1;
   end
   else begin
     pc <= pc_in;
