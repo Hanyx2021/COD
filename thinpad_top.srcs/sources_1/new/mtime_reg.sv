@@ -41,7 +41,7 @@ reg MTIP;
 
 assign time_l = mtime_l;
 assign time_h = mtime_h;
-assign mip_in = 32'b0;
+assign mip_in = {24'b0,MTIP,7'b0};
 assign mip_we = 1'b1;
 
 always_ff @(posedge clk_i)begin
@@ -85,8 +85,8 @@ always_ff @(posedge clk_i)begin
     wb_ack_o <= 1'b0;
     mtime_l <= 32'b0;
     mtime_h <= 32'b0;
-    mtimecmp_l <= 32'b0;
-    mtimecmp_h <= 32'b0;
+    mtimecmp_l <= 32'hFFFF_FFFF;
+    mtimecmp_h <= 32'hFFFF_FFFF;
     MTIP <= 'b0;
   end
   else begin
