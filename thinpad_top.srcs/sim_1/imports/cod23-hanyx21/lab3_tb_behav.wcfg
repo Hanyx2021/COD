@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="2809255fs"></ZoomEndTime>
-      <Cursor1Time time="1000000fs"></Cursor1Time>
+      <ZoomStartTime time="60545000fs"></ZoomStartTime>
+      <ZoomEndTime time="62715001fs"></ZoomEndTime>
+      <Cursor1Time time="61310000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="214"></NameColumnWidth>
       <ValueColumnWidth column_width="173"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="5" />
+   <WVObjectSize size="11" />
    <wvobject fp_name="/tb/dut/clk_10M" type="logic">
       <obj_property name="ElementShortName">clk_10M</obj_property>
       <obj_property name="ObjectShortName">clk_10M</obj_property>
@@ -39,5 +39,29 @@
    <wvobject fp_name="/tb/dut/seg/oSEG" type="array">
       <obj_property name="ElementShortName">oSEG[6:0]</obj_property>
       <obj_property name="ObjectShortName">oSEG[6:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/seg_exe/exception_code" type="array">
+      <obj_property name="ElementShortName">exception_code[3:0]</obj_property>
+      <obj_property name="ObjectShortName">exception_code[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/mtime_controller/time_l" type="array">
+      <obj_property name="ElementShortName">time_l[31:0]</obj_property>
+      <obj_property name="ObjectShortName">time_l[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/mtime_controller/mtimecmp_l" type="array">
+      <obj_property name="ElementShortName">mtimecmp_l[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mtimecmp_l[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/reg_ifid/pc_in" type="array">
+      <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_in[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/reg_idexe/pc_in" type="array">
+      <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_in[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/reg_exemem/pc_in" type="array">
+      <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_in[31:0]</obj_property>
    </wvobject>
 </wave_config>
