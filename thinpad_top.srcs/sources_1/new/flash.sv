@@ -16,11 +16,11 @@ module flash_controller(
     output reg flash_oe_o
 );
 
-   // flash 的 write 指令空转，不进行操作，两个周期后返回正常
+
 typedef enum logic [1:0] {
     IDLE = 0,
     READ = 1,
-    WRITE = 2
+    READ_DONE = 2
 } state_t;
 state_t state, next_state;
 
@@ -37,64 +37,56 @@ always_comb begin
     next_state = IDLE;
     case(state)
         IDLE: begin
-            if (wb_cyc_i && wb_stb_i) begin
-                if (wb_we_i) begin  // write
-                    next_state = WRITE;
-                end else begin  // read
-                    next_state = READ;
-                end
+            if (wb_cyc_i && wb_stb_i && !wb_we_i) begin
+                next_state = READ;
+            end
+            else begin
+                next_state = IDLE;
             end
         end
 
         READ: begin
-            next_state = IDLE;  // 两周期读
+            next_state = READ_DONE;  
         end
 
-        WRITE: begin
-            next_state = IDLE;  // 两周期写
+        READ_DONE: begin
+            next_state = IDLE;
         end
     endcase
 end
 
-// 单字节读取，写入，不做地址对齐
+// 单字节读取，不做地址对齐
 wire [22:0] flash_addr;
 wire [1:0] addr_sel;
 assign flash_addr = wb_adr_i[22:0];
 assign addr_sel = wb_adr_i[1:0];
 
 
-wire [31:0] wb_data_tmp;
-wire [15:0] flash_data_i_comb;
+wire [31:0] wb_data;
 wire [7:0] flash_data_i_low;
-reg [15:0] flash_data_o_comb;
-reg flash_data_t_comb;
 
-assign flash_d = flash_data_t_comb ? 8'bz : flash_data_o_comb;
-assign flash_data_i_comb = flash_d;
-assign flash_data_i_low = flash_data_i_comb[7:0];
-assign flash_data_t_comb = 1;
-assign wb_data_tmp = $signed(flash_data_i_low)<<8*(addr_sel);
+assign flash_d = 8'bz;
+assign flash_data_i_low = flash_d[7:0];
+assign wb_data = $signed(flash_data_i_low) << (8 * addr_sel);
 
 
 // 数据转移
 always_comb begin
-    // 规定不写入字节
-    // 默认不读取字节
-    flash_rp_o = 1;  // 暂时不管 flash 的 reset 按钮
-    flash_oe_o = 1;
-    flash_ce_o = 1;
-    flash_a_o  = 0;
+    if (rst_i) begin
+        flash_rp_o = 1;  // 挂起rp
+        flash_oe_o = 1;
+        flash_ce_o = 1;
+        flash_a_o  = 0;
+    end
 
     case(state) 
         IDLE: begin
-            if (wb_cyc_i && wb_stb_i) begin
-                if(wb_we_i) begin       // write
-                    // pass
-                end else begin          // read
-                    flash_oe_o = 0;
-                    flash_ce_o = 0;
-                    flash_a_o = flash_addr;
-                end
+            if (wb_cyc_i && wb_stb_i && !wb_we_i) begin
+                flash_oe_o = 0;
+                flash_ce_o = 0;
+                flash_a_o = flash_addr;
+            end
+            else begin
             end
         end
 
@@ -104,8 +96,10 @@ always_comb begin
             flash_a_o = flash_addr;
         end
 
-        WRITE: begin
-            // pass
+        READ_DONE: begin
+            flash_oe_o = 1;
+            flash_ce_o = 1;
+            flash_a_o = flash_addr;
         end
     endcase
 end
@@ -115,26 +109,25 @@ end
 always_ff @ (posedge clk_i) begin
     if (rst_i) begin
         wb_ack_o <= 0;
-        // pass for flash reset
     end
 
     case(state)
         IDLE: begin
+            wb_ack_o <= 0;
+        end
+
+        READ: begin
             if (wb_cyc_i && wb_stb_i) begin
                 if (wb_we_i) begin       // write
                     // pass
                 end else begin          // read
-                    wb_dat_o <= wb_data_tmp;
+                    wb_dat_o <= wb_data;
                 end
                 wb_ack_o <= 1;
             end
         end
 
-        READ: begin
-            wb_ack_o <= 0;
-        end
-
-        WRITE: begin
+        READ_DONE: begin
             wb_ack_o <= 0;
         end
     endcase
