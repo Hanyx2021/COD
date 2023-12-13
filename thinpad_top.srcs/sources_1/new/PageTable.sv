@@ -41,7 +41,8 @@ module PageTable(
     output reg [3:0] fault_code_o,  // [comb] the same in `exception.h`
     output reg fault_o,             // [comb] '1' for fault, '0' for no fault
 
-    input wire [31:0] satp_i        // value of CSR register satp
+    input wire [31:0] satp_i,       // value of CSR register satp
+    input wire s_sum_i              // sstatus.SUM
     );
 
     typedef enum logic [2:0] {
@@ -100,11 +101,13 @@ module PageTable(
         tlb_v = selected_tlb_entry[0];
 
         pte_permission_fault = (privilege_i == 2'b00 && !pte_u)     // no permission to U mode
+                            || (privilege_i == 2'b01 && !s_sum_i && !pte_u)     // no permission to S mode
                             || (req_type_i == 2'b00 && !pte_x)      // no permission to execute
                             || (req_type_i == 2'b01 && !pte_r)      // no permission to read
                             || (req_type_i == 2'b11 && !pte_w);     // no permission to write (store)
         
         tlb_permission_fault = (privilege_i == 2'b00 && !tlb_u)     // no permission to U mode
+                            || (privilege_i == 2'b01 && !s_sum_i && !tlb_u)     // no permission to S mode
                             || (req_type_i == 2'b00 && !tlb_x)      // no permission to execute
                             || (req_type_i == 2'b01 && !tlb_r)      // no permission to read
                             || (req_type_i == 2'b11 && !tlb_w);     // no permission to write (store)

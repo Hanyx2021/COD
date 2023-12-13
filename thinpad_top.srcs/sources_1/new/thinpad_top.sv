@@ -440,7 +440,8 @@ module thinpad_top (
     .pte_ready_i(pte_ready_if),
     .fault_code_o(fault_code_if),
     .fault_o(fault_if),
-    .satp_i(satp_out)
+    .satp_i(satp_out),
+    .s_sum_i(sstatus_out[18])
   );
 
   logic [31:0] va_exe;
@@ -473,7 +474,8 @@ module thinpad_top (
     .pte_ready_i(pte_ready_exe),
     .fault_code_o(fault_code_exe),
     .fault_o(fault_exe),
-    .satp_i(satp_out)
+    .satp_i(satp_out),
+    .s_sum_i(sstatus_out[18])
   );
   /* ============ Page Table Controller end ============ */
 
