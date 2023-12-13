@@ -191,8 +191,8 @@ always_ff @(posedge clk_i) begin
   end
 end
 
-assign rf_raddr_a = instr ? rs1:0;
-assign rf_raddr_b = instr ? rs2:0;
+assign rf_raddr_a = (|instr) ? rs1:0;
+assign rf_raddr_b = (|instr) ? rs2:0;
 assign pc_out = pc;
 assign inst_out = instr;
 assign a_out = a_conflict ? a_in : a_data_reg;

@@ -147,7 +147,7 @@ always_comb begin
     STATE_READ:begin
       pc_finish = 1'b1;
       if(wbm0_ack_i) begin
-        nextstate = stall_lb_nop_i ? WAIT_LW_NOP : (exe_finish_i ? WAIT_FAULT : STATE_IDLE);
+        nextstate = (stall_lb_nop_i && !branch_i) ? WAIT_LW_NOP : (exe_finish_i ? WAIT_FAULT : STATE_IDLE);
       end
       else begin
         nextstate = STATE_READ;
@@ -268,7 +268,7 @@ always_ff @(posedge clk_i) begin
             instr <= wbm0_dat_i;
             wbm0_cyc_o <= 1'b0;
             wbm0_stb_o <= 1'b0;
-            if(!stall_lb_nop_i) begin
+            if(!(stall_lb_nop_i && !branch_i)) begin
               pc_out <= pc_now_reg;
               inst_out <= wbm0_dat_i;
             end

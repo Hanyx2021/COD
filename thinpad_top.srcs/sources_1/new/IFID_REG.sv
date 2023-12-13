@@ -31,7 +31,11 @@ always_ff @(posedge clk_i) begin
     instr <= '0;
     error_code <= '0;
   end
-  else if(stall_i || pc_finish || stall_lb_nop_i) begin
+  else if(stall_i || pc_finish || (stall_lb_nop_i && !bubble_i)) begin
+    // stall_lb_nop_i only rises when ID.rs1 or ID.rs2 == EXE.load_rd
+    // bubble_i rises at either a branch / jump instruction, or EXE runs into an exception
+    // Rising stall_lb_nop_i and bubble_i at the same time indicates a page-fault @ EXE,
+    // thus no need to stall, and jump immediately.
   end
   else if(bubble_i) begin
     pc <= '0;

@@ -128,22 +128,22 @@ module PageTable(
                 end
 
                 STATE_FLUSH: begin
-                    if(flush_all_i) begin                  // flush the whole TLB
+                    // if(flush_all_i) begin                  // flush the whole TLB
                         for(i = 0; i < 64; i++) begin
                             tlb[i] <= 40'b0;
                         end
                         tlb_first_first <= 32'hffff_ffff;
-                    end
-                    else begin                              // flush entries of designated address
-                        if(tlb[tlb_i0][0] && tlb[tlb_i0][39:25] == flush_addr_i[31:17]) begin
-                            tlb[tlb_i0][0] <= 32'b0;
-                            tlb_first_first[tlbi] <= 1;
-                        end
-                        if(tlb[tlb_i1][0] && tlb[tlb_i1][39:25] == flush_addr_i[31:17]) begin
-                            tlb[tlb_i1][0] <= 32'b0;
-                            tlb_first_first[tlbi] <= 0;
-                        end
-                    end
+                    // end
+                    // else begin                              // flush entries of designated address
+                    //     if(tlb[tlb_i0][0] && tlb[tlb_i0][39:25] == flush_addr_i[31:17]) begin
+                    //         tlb[tlb_i0] <= 32'b0;
+                    //         tlb_first_first[tlbi] <= 1;
+                    //     end
+                    //     if(tlb[tlb_i1][0] && tlb[tlb_i1][39:25] == flush_addr_i[31:17]) begin
+                    //         tlb[tlb_i1] <= 32'b0;
+                    //         tlb_first_first[tlbi] <= 0;
+                    //     end
+                    // end
                 end
                 
                 STATE_FLUSH_DONE: begin
