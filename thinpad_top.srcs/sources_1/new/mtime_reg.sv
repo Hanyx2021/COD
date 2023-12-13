@@ -41,7 +41,7 @@ reg MTIP;
 
 assign time_l = mtime_l;
 assign time_h = mtime_h;
-assign mip_in = {24'b0,MTIP,7'b0};
+assign mip_in = 32'b0;
 assign mip_we = 1'b1;
 
 always_ff @(posedge clk_i)begin
