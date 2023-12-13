@@ -90,7 +90,7 @@ always_ff @(posedge clk_i)begin
     MTIP <= 'b0;
   end
   else begin
-    if((mtime_l >= mtimecmp_l && mtime_h == mtimecmp_h) || (mtime_h > mtimecmp_h)) begin
+    if((|mtime_l | |mtime_h | |mtimecmp_l | |mtimecmp_h) && ((mtime_l >= mtimecmp_l && mtime_h == mtimecmp_h) || (mtime_h > mtimecmp_h))) begin
       MTIP <= 'b1;
     end
     else begin

@@ -11,6 +11,7 @@ module REG_MEMWB(
     output reg [5:0] memwb_rd,
     input wire stall_i,
     input wire bubble_i,
+    input wire wait_mem_i,
     input wire pc_finish
 );
 
@@ -36,7 +37,7 @@ always_ff @(posedge clk_i) begin
     data <= '0;
     instr <= '0;
   end
-  else if(stall_i || pc_finish) begin
+  else if(stall_i || pc_finish || wait_mem_i) begin
   end
   else if(bubble_i) begin
     data <= '0;

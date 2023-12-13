@@ -11,6 +11,7 @@ module REG_IFID(
     input wire stall_i,
     input wire bubble_i,
     input wire pc_finish,
+    input wire stall_lb_nop_i,
 
     input wire [3:0] if_error_code,
     output reg [3:0] id_error_code
@@ -30,7 +31,7 @@ always_ff @(posedge clk_i) begin
     instr <= '0;
     error_code <= '0;
   end
-  else if(stall_i || pc_finish) begin
+  else if(stall_i || pc_finish || stall_lb_nop_i) begin
   end
   else if(bubble_i) begin
     pc <= '0;
