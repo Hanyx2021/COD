@@ -1771,7 +1771,7 @@ assign inst_out = ((|id_error_code) | (|page_error)) ? 32'b0 : instr;
 assign raddr_out = instr ? (use_page ? pp : addr_reg) : 0;
 assign alu_out = instr ? alu_reg : 0;
 assign exe_stall = exe_finish && !((|id_error_code) | (|page_error));
-assign error_out = exception_code;
+assign error_out = (mode_in == 2'b11) ? mcause_out : scause_out;
 
 endmodule
 
