@@ -113,7 +113,8 @@ module SEG_EXE #(
   input wire [31:0] satp_i,
   input wire [1:0] mode_exe,
   input wire [1:0] mode_reg,
-  input wire mode_we_2
+  input wire mode_we_2,
+  output reg [3:0] error_out
   );
 
 logic [31:0] instr;
@@ -1741,7 +1742,7 @@ always_comb begin
       sstatus_in = {old_sstatus[31:9],mode_out[0],old_sstatus[7:6],old_sstatus[1],old_sstatus[4:2],1'b0,old_sstatus[0]};
       mtval_we = 'b0;
       stval_we = csr_we;
-      stval_in = va_o;
+      stval_in = use_page ? va_o : pc;
     end
     else begin
       scause_we = 'b0;
@@ -1757,7 +1758,7 @@ always_comb begin
       mstatus_in = {old_mstatus[31:13],mode_out,old_mstatus[10:8],old_mstatus[3],old_mstatus[6:4],1'b0,old_mstatus[2:0]};
       sstatus_we = 'b0;
       mtval_we = csr_we;
-      mtval_in = va_o;
+      mtval_in = use_page ? va_o : pc;
       stval_we = 'b0;
     end
 
@@ -1770,6 +1771,7 @@ assign inst_out = ((|id_error_code) | (|page_error)) ? 32'b0 : instr;
 assign raddr_out = instr ? (use_page ? pp : addr_reg) : 0;
 assign alu_out = instr ? alu_reg : 0;
 assign exe_stall = exe_finish && !((|id_error_code) | (|page_error));
+assign error_out = (mode_in == 2'b11) ? mcause_out : scause_out;
 
 endmodule
 

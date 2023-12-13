@@ -921,6 +921,7 @@ logic [31:0] inst_exemem_i;
 logic [3:0] idexe_error_code;
 logic exe_finish;
 logic [31:0] csr_exe;
+logic [3:0] error_out;
 
   SEG_EXE seg_exe(
     .clk_i(sys_clk),
@@ -1034,7 +1035,8 @@ logic [31:0] csr_exe;
     .satp_i(satp_out),
     .mode_exe(mode_in),
     .mode_reg(mode_out),
-    .mode_we_2(mode_we)
+    .mode_we_2(mode_we),
+    .error_out(error_out)
   );
   /* =========== Lab6 EXE end ============== */
 
@@ -1220,4 +1222,11 @@ logic [31:0] csr_exe;
     .memwb_bubble_o(memwb_bubble)
   );
 /* =========== Lab6 controller end ================*/
+
+/* =========== Lab6 Digit Number begin ============ */
+  SEG7_LUT seg(
+    .oSEG1(dpy0),
+    .iDIG(error_out)
+  );
+/* =========== Lab6 Digit Number end ============ */
 endmodule
