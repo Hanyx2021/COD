@@ -1553,16 +1553,16 @@ always_comb begin
               alu_b = instr[25] ? 6'b00000 : instr[25:20];
               alu_op = 4'b0111;
             end
-            3'b101:                       // SRLI
+            3'b101:                       // SRLI, SRAI
             begin
-              alu_b = instr[25] ? 6'b00000 : instr[25:20];
-              alu_op = 4'b1000;
-            end
-            // SRAI
-            3'b101:
-            begin
-              alu_b = instr[25] ? 6'b00000 : instr[25:20];
-              alu_op = 4'b1001;
+              if(instr[30]) begin         // SRAI
+                alu_b = instr[25] ? 6'b00000 : instr[25:20];
+                alu_op = 4'b1001;
+              end
+              else begin                  // SRLI
+                alu_b = instr[25] ? 6'b00000 : instr[25:20];
+                alu_op = 4'b1000;
+              end
             end
             // SLTI
             3'b010:
