@@ -38,10 +38,11 @@ reg [DATA_WIDTH-1:0] mtime_h;
 reg [DATA_WIDTH-1:0] mtimecmp_l;
 reg [DATA_WIDTH-1:0] mtimecmp_h;
 reg MTIP;
+reg [7:0] cyc_count = 0;
 
 assign time_l = mtime_l;
 assign time_h = mtime_h;
-assign mip_in = 32'b0;
+assign mip_in = {24'b0,MTIP,7'b0};
 assign mip_we = 1'b1;
 
 always_ff @(posedge clk_i)begin
@@ -99,10 +100,13 @@ always_ff @(posedge clk_i)begin
     case(state)
       STATE_IDLE:begin
         if(MTIP == '0 && (mtimecmp_h != '0 || mtimecmp_l != '0) && !pc_finish && !stall_i && !page_i) begin
-          if(mtime_l == 'hFFFF_FFFF) begin
-            mtime_h <= mtime_h + 1;
+          cyc_count <= cyc_count + 1;
+          if(cyc_count == 8'b0) begin
+            if(mtime_l == 'hFFFF_FFFF) begin
+              mtime_h <= mtime_h + 1;
+            end
+            mtime_l <= mtime_l + 1;
           end
-          mtime_l <= mtime_l + 1;
         end
       end
       STATE_READ_AND_WRITE:begin
